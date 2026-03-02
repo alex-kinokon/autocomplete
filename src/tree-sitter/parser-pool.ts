@@ -147,31 +147,12 @@ export class ParserPool implements vscode.Disposable {
 
   /**
    * Resolve the filesystem path to a grammar WASM file.
-   *
-   * Not unit-tested: the two branches depend on `process.env.NODE_ENV` and
-   * real filesystem layout (WASM files in `dist/grammars/` vs
-   * `node_modules/tree-sitter-wasms/out/`). Testing would require mocking
-   * both `process.env` and `Language.load` with no meaningful assertion
-   * beyond verifying the string concatenation. Path correctness is instead
-   * validated by the `copy-grammars` build step and extension integration
-   * tests.
    */
   private resolveGrammarPath(grammarName: string): string {
-    if (process.env.NODE_ENV === "production") {
-      // Production: grammars are copied to dist/grammars/ by the build step
-      return vscode.Uri.joinPath(
-        this.extensionUri,
-        "dist",
-        "grammars",
-        `${grammarName}.wasm`
-      ).fsPath;
-    }
-    // Development: load directly from node_modules
     return vscode.Uri.joinPath(
       this.extensionUri,
-      "node_modules",
-      "tree-sitter-wasms",
-      "out",
+      "dist",
+      "grammars",
       `${grammarName}.wasm`
     ).fsPath;
   }
