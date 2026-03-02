@@ -1,0 +1,209 @@
+{
+  "publisher": "aet",
+  "name": "autocomplete",
+  "displayName": "Autocomplete",
+  "type": "module",
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.28.1",
+  "description": "Inline autocomplete using OpenAI-compatible APIs",
+  "license": "GPL-3.0-or-later",
+  "repository": "https://github.com/alex-kinokon/autocomplete.git",
+  "main": "./dist/extension.js",
+  "icon": "assets/icon.png",
+  "l10n": "./l10n",
+  "engines": {
+    "vscode": "^1.109.0"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "configuration": {
+      "title": "%config.title%",
+      "properties": {
+        "autocomplete.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.enable.description%"
+        },
+        "autocomplete.debug": {
+          "type": "boolean",
+          "default": false,
+          "description": "%config.debug.description%"
+        },
+        "autocomplete.endpoint": {
+          "type": "string",
+          "default": "http://localhost:11434/v1",
+          "description": "%config.endpoint.description%"
+        },
+        "autocomplete.model": {
+          "type": "string",
+          "default": "",
+          "description": "%config.model.description%"
+        },
+        "autocomplete.maxTokens": {
+          "type": "number",
+          "default": 256,
+          "minimum": 1,
+          "maximum": 4096,
+          "description": "%config.maxTokens.description%"
+        },
+        "autocomplete.temperature": {
+          "type": "number",
+          "default": 0.2,
+          "minimum": 0,
+          "maximum": 2,
+          "description": "%config.temperature.description%"
+        },
+        "autocomplete.stop": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "\n\n"
+          ],
+          "description": "%config.stop.description%"
+        },
+        "autocomplete.fim.mode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "off",
+            "server-managed",
+            "custom"
+          ],
+          "default": "auto",
+          "enumDescriptions": [
+            "%config.fim.mode.auto%",
+            "%config.fim.mode.off%",
+            "%config.fim.mode.serverManaged%",
+            "%config.fim.mode.custom%"
+          ],
+          "description": "%config.fim.mode.description%"
+        },
+        "autocomplete.fim.prefix": {
+          "type": "string",
+          "default": "",
+          "description": "%config.fim.prefix.description%"
+        },
+        "autocomplete.fim.suffix": {
+          "type": "string",
+          "default": "",
+          "description": "%config.fim.suffix.description%"
+        },
+        "autocomplete.fim.middle": {
+          "type": "string",
+          "default": "",
+          "description": "%config.fim.middle.description%"
+        },
+        "autocomplete.userAgent": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": "vscode-autocomplete/0.1.0",
+          "description": "%config.userAgent.description%"
+        },
+        "autocomplete.debounceMs": {
+          "type": "number",
+          "default": 300,
+          "minimum": 0,
+          "maximum": 5000,
+          "description": "%config.debounceMs.description%"
+        },
+        "autocomplete.contextLines": {
+          "type": "number",
+          "default": 100,
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "%config.contextLines.description%"
+        },
+        "autocomplete.systemPrompt": {
+          "type": "string",
+          "default": "",
+          "editPresentation": "multilineText",
+          "description": "%config.systemPrompt.description%"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "autocomplete.enable",
+        "title": "%command.enable%"
+      },
+      {
+        "command": "autocomplete.disable",
+        "title": "%command.disable%"
+      },
+      {
+        "command": "autocomplete.selectModel",
+        "title": "%command.selectModel%"
+      },
+      {
+        "command": "autocomplete.selectModelWorkspace",
+        "title": "%command.selectModelWorkspace%"
+      },
+      {
+        "command": "autocomplete.setApiKey",
+        "title": "%command.setApiKey%"
+      },
+      {
+        "command": "autocomplete.clearApiKey",
+        "title": "%command.clearApiKey%"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "autocomplete.selectModelWorkspace",
+          "when": "workspaceFolderCount > 0"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "copy-grammars": "mkdir -p dist/grammars && cp node_modules/tree-sitter-wasms/out/*.wasm dist/grammars/ && cp node_modules/web-tree-sitter/tree-sitter.wasm dist/grammars/",
+    "bundle": "esbuild src/extension.ts --bundle --platform=node --target=node22 --outdir=dist --external:vscode --format=esm --splitting --sourcemap --banner:js=\"/* eslint-disable */\"",
+    "build": "npm run bundle -- --define:process.env.NODE_ENV=\\\"production\\\" && npm run copy-grammars",
+    "watch": "npm run bundle -- --define:process.env.NODE_ENV=\\\"development\\\" --watch",
+    "package": "vsce package --no-dependencies",
+    "l10n:check": "node scripts/check-l10n.ts",
+    "install:codium": "codium --install-extension *.vsix",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "vscode:prepublish": "pnpm build --minify"
+  },
+  "optionalDependencies": {
+    "@aet/eslint-rules": "^2.0.123"
+  },
+  "devDependencies": {
+    "@esbuild/darwin-arm64": "^0.27.3",
+    "@esbuild/linux-arm64": "^0.27.3",
+    "@rollup/rollup-linux-arm64-gnu": "^4.59.0",
+    "@types/node": "^25.3.3",
+    "@types/vscode": "^1.109.0",
+    "@unrs/resolver-binding-linux-arm64-gnu": "^1.11.1",
+    "@vitest/eslint-plugin": "^1.6.9",
+    "@vscode/vsce": "^3.7.1",
+    "esbuild": "^0.27.3",
+    "eslint": "^9.39.3",
+    "lru-cache": "^11.2.6",
+    "openai": "^6.25.0",
+    "prettier": "^3.8.1",
+    "tree-sitter-wasms": "^0.1.13",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
+    "web-tree-sitter": "0.25.10"
+  },
+  "prettier": {
+    "arrowParens": "avoid",
+    "tabWidth": 2,
+    "printWidth": 90,
+    "semi": true,
+    "singleQuote": false,
+    "trailingComma": "es5"
+  }
+}

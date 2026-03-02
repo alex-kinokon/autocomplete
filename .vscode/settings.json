@@ -1,0 +1,19 @@
+{
+  "eslint.runtime": "node",
+  "editor.formatOnSave": true,
+  "cSpell.words": [
+    "bibtex",
+    "chatagent",
+    "codegemma",
+    "codellama",
+    "codestral",
+    "cuda",
+    "dockercompose",
+    "endoftext",
+    "hlsl",
+    "juliamarkdown",
+    "raku",
+    "starcoder",
+    "wasms"
+  ]
+}

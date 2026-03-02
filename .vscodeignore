@@ -1,0 +1,12 @@
+.vscode/**
+src/**
+node_modules/**
+.gitignore
+eslint.config.js
+tsconfig.json
+vitest.config.ts
+pnpm-lock.yaml
+**/*.test.ts
+**/*.spec.ts
+assets/icon.svg
+

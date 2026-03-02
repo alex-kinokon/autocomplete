@@ -1,0 +1,18 @@
+{
+  "Set autocomplete.endpoint first.": "Set autocomplete.endpoint first.",
+  "Failed to fetch models from {0}": "Failed to fetch models from {0}",
+  "No models found on {0}": "No models found on {0}",
+  "(current)": "(current)",
+  "Select Model": "Select Model",
+  "Choose a model": "Choose a model",
+  "Autocomplete: server is busy. Try again in a moment.": "Autocomplete: server is busy. Try again in a moment.",
+  "Set API Key": "Set API Key",
+  "Enter your API key for authenticated endpoints": "Enter your API key for authenticated endpoints",
+  "Autocomplete: API key saved.": "Autocomplete: API key saved.",
+  "Autocomplete: API key cleared.": "Autocomplete: API key cleared.",
+  "Autocomplete: debug mode is enabled. Disable it when not troubleshooting.": "Autocomplete: debug mode is enabled. Disable it when not troubleshooting.",
+  "Autocomplete: request failed. Is {0} reachable?": "Autocomplete: request failed. Is {0} reachable?",
+  "Autocomplete: model \"{0}\" not found.": "Autocomplete: model \"{0}\" not found.",
+  "Autocomplete: model \"{0}\" does not support {1} mode.": "Autocomplete: model \"{0}\" does not support {1} mode.",
+  "Autocomplete: not enough memory to load \"{0}\". Try a smaller model.": "Autocomplete: not enough memory to load \"{0}\". Try a smaller model."
+}

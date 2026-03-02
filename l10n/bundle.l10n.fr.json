@@ -1,0 +1,18 @@
+{
+  "Set autocomplete.endpoint first.": "Définissez d’abord autocomplete.endpoint.",
+  "Failed to fetch models from {0}": "Impossible de récupérer les modèles depuis {0}",
+  "No models found on {0}": "Aucun modèle trouvé sur {0}",
+  "(current)": "(actuel)",
+  "Select Model": "Choisir un modèle",
+  "Choose a model": "Choisissez un modèle",
+  "Autocomplete: server is busy. Try again in a moment.": "Autocomplete : le serveur est occupé. Réessayez dans un instant.",
+  "Set API Key": "Définir la clé API",
+  "Enter your API key for authenticated endpoints": "Entrez votre clé API pour les points d'accès authentifiés",
+  "Autocomplete: API key saved.": "Autocomplete : clé API enregistrée.",
+  "Autocomplete: API key cleared.": "Autocomplete : clé API supprimée.",
+  "Autocomplete: debug mode is enabled. Disable it when not troubleshooting.": "Autocomplete : le mode débogage est activé. Désactivez-le en dehors du dépannage.",
+  "Autocomplete: request failed. Is {0} reachable?": "Autocomplete : la requête a échoué. {0} est-il accessible ?",
+  "Autocomplete: model \"{0}\" not found.": "Autocomplete : modèle « {0} » introuvable.",
+  "Autocomplete: model \"{0}\" does not support {1} mode.": "Autocomplete : le modèle « {0} » ne prend pas en charge le mode {1}.",
+  "Autocomplete: not enough memory to load \"{0}\". Try a smaller model.": "Autocomplete : pas assez de mémoire pour charger « {0} ». Essayez un modèle plus petit."
+}

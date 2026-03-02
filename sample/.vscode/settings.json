@@ -1,0 +1,5 @@
+{
+  "autocomplete.endpoint": "http://localhost:11434/v1",
+  "autocomplete.model": "qwen2.5-coder:1.5b",
+  "autocomplete.debug": true
+}

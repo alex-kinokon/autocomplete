@@ -1,0 +1,10 @@
+{
+  "extends": "@aet/eslint-rules/tsconfig",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true
+  },
+  "include": ["src", "scripts", "vitest.config.ts"],
+  "exclude": ["node_modules", "dist", "sample"]
+}
