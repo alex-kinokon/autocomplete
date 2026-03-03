@@ -26,6 +26,7 @@ interface SettingsMap {
   readonly debounceMs: number;
   readonly contextLines: number;
   readonly systemPrompt: string;
+  readonly excludeFiles: string[];
 }
 
 const SECRET_KEY = "autocomplete.apiKey";

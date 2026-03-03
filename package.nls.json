@@ -19,6 +19,7 @@
   "config.debounceMs.description": "Delay in milliseconds before sending a completion request",
   "config.contextLines.description": "Number of lines of context to include around the cursor",
   "config.systemPrompt.description": "Custom system prompt for chat completions. Leave empty to use the built-in default.",
+  "config.excludeFiles.description": "Additional glob patterns for files to exclude from completions (e.g., *.log, secrets.yaml). Common sensitive files like .env and .pem are always excluded.",
   "command.enable": "Autocomplete: Enable",
   "command.disable": "Autocomplete: Disable",
   "command.selectModel": "Autocomplete: Select Model (Global)",

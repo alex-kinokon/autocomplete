@@ -8,6 +8,7 @@ import * as vscode from "vscode";
 
 import type { DefinitionCache } from "./definition-cache.ts";
 import type { EditTracker, FileEditHistory } from "./edit-tracker.ts";
+import { isExcludedFile } from "./exclude-file.ts";
 import { getDefinitionSnippets } from "./import-context.ts";
 import * as log from "./log.ts";
 import type { SymbolCache } from "./symbol-cache.ts";
@@ -284,6 +285,7 @@ async function gatherRelatedSnippets(
   for (const editor of vscode.window.visibleTextEditors) {
     const { document } = editor;
     if (document.uri.scheme !== "file") continue;
+    if (isExcludedFile(document.uri.fsPath)) continue;
     const uri = document.uri.toString();
     if (uri === currentUri) continue;
 
@@ -309,6 +311,7 @@ async function gatherRelatedSnippets(
   // Score recently-edited files
   if (editTracker) {
     for (const history of editTracker.getRecentlyEditedFiles(currentDocument.uri)) {
+      if (isExcludedFile(history.uri.fsPath)) continue;
       const uri = history.uri.toString();
       if (uri === currentUri) continue;
 

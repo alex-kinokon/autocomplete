@@ -97,6 +97,7 @@ Common FIM token formats for custom mode:
 | `autocomplete.debounceMs`   | number   | `300`                       | Delay in ms before sending a request                 |
 | `autocomplete.contextLines` | number   | `100`                       | Lines of context around the cursor                   |
 | `autocomplete.systemPrompt` | string   |                             | Custom system prompt for chat completions            |
+| `autocomplete.excludeFiles` | string[] | `[]`                        | Additional glob patterns for files to exclude        |
 
 Commands (palette): `Autocomplete: Enable`, `Autocomplete: Disable`, `Autocomplete: Select Model`, `Autocomplete: Select Model (Workspace)`, `Autocomplete: Set API Key`, `Autocomplete: Clear API Key`. Select Model fetches the model list from any OpenAI-compatible server via `/v1/models`, and shows additional details (parameter size, quantization, disk size) when connected to Ollama.
 

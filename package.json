@@ -124,6 +124,14 @@
           "default": "",
           "editPresentation": "multilineText",
           "description": "%config.systemPrompt.description%"
+        },
+        "autocomplete.excludeFiles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "%config.excludeFiles.description%"
         }
       }
     },
@@ -184,6 +192,7 @@
     "@esbuild/linux-arm64": "^0.27.3",
     "@rollup/rollup-linux-arm64-gnu": "^4.59.0",
     "@types/node": "^25.3.3",
+    "@types/picomatch": "^4.0.2",
     "@types/vscode": "^1.109.0",
     "@unrs/resolver-binding-linux-arm64-gnu": "^1.11.1",
     "@vitest/eslint-plugin": "^1.6.9",
@@ -192,6 +201,7 @@
     "eslint": "^9.39.3",
     "lru-cache": "^11.2.6",
     "openai": "^6.25.0",
+    "picomatch": "^4.0.3",
     "prettier": "^3.8.1",
     "tree-sitter-wasms": "^0.1.13",
     "typescript": "^5.9.3",

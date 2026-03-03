@@ -14,10 +14,11 @@ import {
   UnsupportedModeError,
   requestCompletion,
 } from "./api.ts";
-import { detectFimSupport, getApiKey, getConfig } from "./config.ts";
+import { detectFimSupport, getApiKey, getConfig, getSetting } from "./config.ts";
 import { extractContext } from "./context.ts";
 import type { DefinitionCache } from "./definition-cache.ts";
 import type { EditTracker } from "./edit-tracker.ts";
+import { isExcludedFile } from "./exclude-file.ts";
 import * as log from "./log.ts";
 import type { SymbolCache } from "./symbol-cache.ts";
 import type { ParserPool } from "./tree-sitter/parser-pool.ts";
@@ -58,6 +59,11 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
     const apiKey = await getApiKey();
     const config = getConfig(document, apiKey);
     if (!config) return;
+
+    if (isExcludedFile(document.uri.fsPath, getSetting("excludeFiles"))) {
+      log.info("Skipping completion: sensitive file");
+      return;
+    }
 
     // Abort any previous in-flight request for the same document
     const docKey = document.uri.toString();

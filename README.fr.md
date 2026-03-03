@@ -97,6 +97,7 @@ Formats de jetons FIM courants pour le mode personnalisé :
 | `autocomplete.debounceMs`   | number   | `300`                       | Délai en ms avant l’envoi d’une requête                       |
 | `autocomplete.contextLines` | number   | `100`                       | Lignes de contexte autour du curseur                          |
 | `autocomplete.systemPrompt` | string   |                             | Prompt système personnalisé pour les complétions en mode chat |
+| `autocomplete.excludeFiles` | string[] | `[]`                        | Motifs glob supplémentaires pour exclure des fichiers         |
 
 Commandes (palette) : `Autocomplete : Activer`, `Autocomplete : Désactiver`, `Autocomplete : Choisir un modèle`, `Autocomplete : Choisir un modèle (Workspace)`, `Autocomplete : Définir la clé API`, `Autocomplete : Supprimer la clé API`.
 

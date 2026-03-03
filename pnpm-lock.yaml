@@ -20,6 +20,9 @@ importers:
       '@types/node':
         specifier: ^25.3.3
         version: 25.3.3
+      '@types/picomatch':
+        specifier: ^4.0.2
+        version: 4.0.2
       '@types/vscode':
         specifier: ^1.109.0
         version: 1.109.0
@@ -44,6 +47,9 @@ importers:
       openai:
         specifier: ^6.25.0
         version: 6.25.0(zod@4.3.6)
+      picomatch:
+        specifier: ^4.0.3
+        version: 4.0.3
       prettier:
         specifier: ^3.8.1
         version: 3.8.1
@@ -668,6 +674,9 @@ packages:
 
   '@types/normalize-package-data@2.4.4':
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
+
+  '@types/picomatch@4.0.2':
+    resolution: {integrity: sha512-qHHxQ+P9PysNEGbALT8f8YOSHW0KJu6l2xU8DYY0fu/EmGxXdVnuTLvFUvBgPJMSqXq29SYHveejeAha+4AYgA==}
 
   '@types/sarif@2.1.7':
     resolution: {integrity: sha512-kRz0VEkJqWLf1LLVN4pT1cg1Z9wAuvI6L97V3m2f5B76Tg8d413ddvLBPTEHAZJlnn4XSvu0FkZtViCQGVyrXQ==}
@@ -3377,6 +3386,8 @@ snapshots:
       undici-types: 7.18.2
 
   '@types/normalize-package-data@2.4.4': {}
+
+  '@types/picomatch@4.0.2': {}
 
   '@types/sarif@2.1.7': {}
 

@@ -9,6 +9,7 @@ import * as vscode from "vscode";
 
 import type { LanguageId, RelatedSnippet } from "./context.ts";
 import type { DefinitionCache } from "./definition-cache.ts";
+import { isExcludedFile } from "./exclude-file.ts";
 import * as log from "./log.ts";
 
 /** Maximum lines of context to extract around a definition location. */
@@ -364,6 +365,7 @@ export async function getDefinitionSnippets(
         // Skip duplicates and node_modules
         if (existingPaths.has(relativePath)) continue;
         if (relativePath.includes("node_modules")) continue;
+        if (isExcludedFile(loc.uri.fsPath)) continue;
 
         try {
           const defDoc = await vscode.workspace.openTextDocument(loc.uri);

@@ -11,7 +11,7 @@ import {
 function makeDocument(lines: string[], uri = "file:///test.ts"): vscode.TextDocument {
   const text = lines.join("\n");
   return {
-    uri: { toString: () => uri },
+    uri: { toString: () => uri, fsPath: uri.replace("file://", "") },
     lineCount: lines.length,
     lineAt: (line: number) => ({ text: lines[line] ?? "" }),
     getText: (range?: vscode.Range) => {
@@ -200,6 +200,7 @@ vi.mock("../config.ts", () => ({
     systemPrompt: "",
   })),
   detectFimSupport: vi.fn<() => Promise<undefined>>(() => Promise.resolve(undefined)),
+  getSetting: vi.fn<() => string[]>(() => []),
 }));
 
 vi.mock("../context.ts", () => ({

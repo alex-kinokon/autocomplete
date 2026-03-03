@@ -20,6 +20,7 @@
   "config.debounceMs.description": "Délai en millisecondes avant l’envoi d’une requête",
   "config.contextLines.description": "Nombre de lignes de contexte autour du curseur",
   "config.systemPrompt.description": "Invite système personnalisée pour les complétions chat. Laisser vide pour utiliser celle par défaut.",
+  "config.excludeFiles.description": "Motifs glob supplémentaires pour exclure des fichiers des complétions (ex. *.log, secrets.yaml). Les fichiers sensibles courants comme .env et .pem sont toujours exclus.",
   "command.enable": "Autocomplete : Activer",
   "command.disable": "Autocomplete : Désactiver",
   "command.selectModel": "Autocomplete : Choisir un modèle (global)",
