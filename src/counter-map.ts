@@ -9,6 +9,7 @@ export class CounterMap {
   }
 
   set(key: string, value: number): void {
+    if (isNaN(value)) return;
     this.map.set(key, value);
   }
 
