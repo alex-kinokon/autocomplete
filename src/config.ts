@@ -59,7 +59,7 @@ export function getSetting<K extends keyof SettingsMap>(key: K): SettingsMap[K] 
 }
 
 /** Shared HTTP headers for all outgoing requests. */
-export function defaultHeaders(): Record<string, string> {
+function defaultHeaders(): Record<string, string> {
   const ua = getSetting("userAgent");
   return ua !== null ? { "User-Agent": ua } : {};
 }

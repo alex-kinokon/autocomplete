@@ -613,16 +613,16 @@ export function commentPrefix(languageId: LanguageId): string {
 }
 
 // Symbol-based scope context (fallback for tree-sitter root-path)
-const SYMBOL_KIND_LABELS: Record<number, string> = {
-  2: "module",
-  3: "namespace",
-  5: "class",
-  6: "method",
-  10: "enum",
-  11: "interface",
-  12: "function",
-  23: "struct",
-};
+const SYMBOL_KIND_LABELS = new Map<number, string>([
+  [2, "module"],
+  [3, "namespace"],
+  [5, "class"],
+  [6, "method"],
+  [10, "enum"],
+  [11, "interface"],
+  [12, "function"],
+  [23, "struct"],
+]);
 
 /**
  * Format an enclosing symbol path as scope context, mimicking the
@@ -640,7 +640,7 @@ export function formatSymbolPathContext(
   let result = "Scope:\n";
   for (const [i, symbol] of symbols.entries()) {
     const indent = "  ".repeat(i + 1);
-    const kind = SYMBOL_KIND_LABELS[symbol.kind] ?? "";
+    const kind = SYMBOL_KIND_LABELS.get(symbol.kind) ?? "";
     const name = symbol.name;
     const detail = symbol.detail ? ` ${symbol.detail}` : "";
     const label = kind ? `${kind} ${name}${detail}` : `${name}${detail}`;
