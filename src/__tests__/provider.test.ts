@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as vscode from "vscode";
 
+import type { EditTracker } from "../edit-tracker.ts";
 import {
   AutocompleteProvider,
   computeCacheKey,
@@ -134,6 +135,52 @@ describe("shouldSkipCompletion", () => {
     expect(
       shouldSkipCompletion(doc, "const y =", new vscode.Position(1, 9))
     ).toBeUndefined();
+  });
+
+  it("skips when cursor is in the middle of a word", () => {
+    const doc = makeDocument(["foobar"]);
+    // cursor between 'foo' and 'bar'
+    expect(shouldSkipCompletion(doc, "foo", new vscode.Position(0, 3))).toBe(
+      "middle of word"
+    );
+  });
+
+  it("allows completion at the end of a word", () => {
+    const doc = makeDocument(["foobar "]);
+    // cursor after 'foobar' with space following
+    expect(
+      shouldSkipCompletion(doc, "foobar", new vscode.Position(0, 6))
+    ).toBeUndefined();
+  });
+
+  it("allows completion before closing brackets", () => {
+    const doc = makeDocument(["const x = foo()"]);
+    // cursor at |)
+    expect(
+      shouldSkipCompletion(doc, "const x = foo(", new vscode.Position(0, 14))
+    ).toBeUndefined();
+  });
+
+  it("allows completion before closing bracket + semicolon", () => {
+    const doc = makeDocument(["foo();"]);
+    // cursor at |);
+    expect(shouldSkipCompletion(doc, "foo(", new vscode.Position(0, 4))).toBeUndefined();
+  });
+
+  it("skips when there is content after cursor", () => {
+    // cursor before "- bar" (non-word char, but substantial content remains)
+    const doc = makeDocument(["x - bar"]);
+    expect(shouldSkipCompletion(doc, "x ", new vscode.Position(0, 2))).toBe(
+      "content after cursor"
+    );
+  });
+
+  it("skips when operator content follows cursor", () => {
+    const doc = makeDocument(["a + bar"]);
+    // cursor at 'a |+ bar'
+    expect(shouldSkipCompletion(doc, "a ", new vscode.Position(0, 2))).toBe(
+      "content after cursor"
+    );
   });
 });
 
@@ -376,5 +423,133 @@ describe("AutocompleteProvider controller lifecycle", () => {
     // First request bails out, second completes normally
     expect(firstResult).toBeUndefined();
     expect(controllers().size).toBe(0);
+  });
+});
+
+// --- Deletion skip heuristic ---
+
+describe("deletion skip heuristic", () => {
+  it("skips completion when last edit was a deletion", async () => {
+    const editTracker = {
+      wasLastEditDeletion: vi.fn<() => boolean>(() => true),
+      getRecentlyEditedFiles: vi.fn<() => []>(() => []),
+    } satisfies Partial<EditTracker>;
+
+    const provider = new AutocompleteProvider(editTracker as unknown as EditTracker);
+    const doc = makeProviderDocument("file:///del.ts");
+    const pos = new vscode.Position(0, 10);
+
+    const result = await provider.provideInlineCompletionItems(
+      doc,
+      pos,
+      dummyContext,
+      makeToken()
+    );
+
+    expect(result).toBeUndefined();
+    expect(editTracker.wasLastEditDeletion).toHaveBeenCalledWith(doc.uri);
+  });
+
+  it("does not skip when last edit was not a deletion", async () => {
+    const editTracker = {
+      wasLastEditDeletion: vi.fn<() => boolean>(() => false),
+      getRecentlyEditedFiles: vi.fn<() => []>(() => []),
+    } satisfies Partial<EditTracker>;
+
+    const provider = new AutocompleteProvider(editTracker as unknown as EditTracker);
+    const doc = makeProviderDocument("file:///nodel.ts");
+    const pos = new vscode.Position(0, 10);
+
+    const result = await provider.provideInlineCompletionItems(
+      doc,
+      pos,
+      dummyContext,
+      makeToken()
+    );
+
+    // Should return a completion (not skipped by deletion check)
+    expect(result).toHaveLength(1);
+  });
+});
+
+// --- Empty streak heuristic ---
+
+describe("empty streak heuristic", () => {
+  it("skips after 3 consecutive empty results", async () => {
+    const { requestCompletion } = await import("../api.ts");
+    vi.mocked(requestCompletion).mockResolvedValue("");
+
+    const provider = new AutocompleteProvider();
+    const doc = makeProviderDocument("file:///streak.ts");
+    const pos = new vscode.Position(0, 10);
+
+    // First 3 requests return empty — build up streak
+    for (let i = 0; i < 3; i++) {
+      await provider.provideInlineCompletionItems(doc, pos, dummyContext, makeToken());
+    }
+
+    // 4th request should be skipped (streak >= 3)
+    vi.mocked(requestCompletion).mockClear();
+    const result = await provider.provideInlineCompletionItems(
+      doc,
+      pos,
+      dummyContext,
+      makeToken()
+    );
+
+    expect(result).toBeUndefined();
+    // requestCompletion should NOT have been called (skipped early)
+    expect(requestCompletion).not.toHaveBeenCalled();
+  });
+
+  it("retries periodically by decrementing streak", async () => {
+    const { requestCompletion } = await import("../api.ts");
+    vi.mocked(requestCompletion).mockResolvedValue("");
+
+    const provider = new AutocompleteProvider();
+    const doc = makeProviderDocument("file:///streak2.ts");
+    const pos = new vscode.Position(0, 10);
+
+    // Build streak to 3
+    for (let i = 0; i < 3; i++) {
+      await provider.provideInlineCompletionItems(doc, pos, dummyContext, makeToken());
+    }
+
+    // 4th: skipped (streak 3 → 2)
+    await provider.provideInlineCompletionItems(doc, pos, dummyContext, makeToken());
+
+    // 5th: streak is 2 < 3, so it goes through
+    vi.mocked(requestCompletion).mockClear();
+    await provider.provideInlineCompletionItems(doc, pos, dummyContext, makeToken());
+    expect(requestCompletion).toHaveBeenCalledOnce();
+  });
+
+  it("resets streak on non-empty result", async () => {
+    const { requestCompletion } = await import("../api.ts");
+    vi.mocked(requestCompletion).mockResolvedValue("");
+
+    const provider = new AutocompleteProvider();
+    const doc = makeProviderDocument("file:///streak3.ts");
+    const pos = new vscode.Position(0, 10);
+
+    // Build streak to 2
+    await provider.provideInlineCompletionItems(doc, pos, dummyContext, makeToken());
+    await provider.provideInlineCompletionItems(doc, pos, dummyContext, makeToken());
+
+    // Return non-empty — should reset streak
+    vi.mocked(requestCompletion).mockResolvedValue("42");
+    await provider.provideInlineCompletionItems(doc, pos, dummyContext, makeToken());
+
+    // Clear the cache so subsequent requests actually reach requestCompletion
+    provider.clearCache();
+
+    // Next 3 empties should not cause a skip yet (streak reset to 0)
+    vi.mocked(requestCompletion).mockResolvedValue("");
+    vi.mocked(requestCompletion).mockClear();
+    for (let i = 0; i < 3; i++) {
+      await provider.provideInlineCompletionItems(doc, pos, dummyContext, makeToken());
+    }
+    // All 3 should have gone through
+    expect(requestCompletion).toHaveBeenCalledTimes(3);
   });
 });

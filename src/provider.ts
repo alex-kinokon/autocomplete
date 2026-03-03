@@ -31,6 +31,8 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
   private readonly controllers = new Map<string, AbortController>();
   /** Whether the user has already been notified of a connection failure. */
   private notifiedError = false;
+  /** Consecutive empty-result count per document. */
+  private readonly emptyStreaks = new Map<string, number>();
 
   readonly definitionCache?: DefinitionCache;
 
@@ -69,6 +71,13 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
       await new Promise(resolve => setTimeout(resolve, config.debounceMs));
       if (token.isCancellationRequested || controller.signal.aborted) return;
 
+      // Back off when the model has returned empty results repeatedly
+      if ((this.emptyStreaks.get(docKey) ?? 0) >= 3) {
+        this.emptyStreaks.set(docKey, (this.emptyStreaks.get(docKey) ?? 0) - 1);
+        log.info("Skipping completion: repeated empty results");
+        return;
+      }
+
       // Check cache before making a network request
       const cacheKey = computeCacheKey(document, position);
       const cached = this.cache.get(cacheKey);
@@ -87,6 +96,12 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
         definitionCache: this.definitionCache,
         symbolCache: this.symbolCache,
       });
+
+      // User is deleting text — don't suggest new code
+      if (this.editTracker?.wasLastEditDeletion(document.uri)) {
+        log.info("Skipping completion: last edit was deletion");
+        return;
+      }
 
       // Skip completions in cases where prompting would be useless or noisy
       const skipReason = shouldSkipCompletion(document, docContext.prefix, position);
@@ -109,9 +124,11 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
       const t0 = Date.now();
       let completion = await requestCompletion(config, docContext, controller.signal);
       if (!completion) {
+        this.emptyStreaks.set(docKey, (this.emptyStreaks.get(docKey) ?? 0) + 1);
         log.info("Empty completion returned");
         return;
       }
+      this.emptyStreaks.delete(docKey);
 
       // Syntax-aware validation: truncate at parse errors when parser available
       if (this.parserPool) {
@@ -206,6 +223,20 @@ export function shouldSkipCompletion(
   const lineText = document.lineAt(position.line).text.slice(0, position.character);
   if (CLOSING_ONLY.test(lineText)) {
     return "closing bracket line";
+  }
+
+  // Cursor is inside a token — completing here would splice into a word
+  const fullLineText = document.lineAt(position.line).text;
+  const afterCursor = fullLineText[position.character];
+  if (afterCursor && /\w/.test(afterCursor)) {
+    return "middle of word";
+  }
+
+  // Substantial non-closer content after cursor — completion would be disruptive
+  const textAfterCursor = fullLineText.slice(position.character);
+  const stripped = textAfterCursor.replace(/^[\s"'),;\]}]*/, "");
+  if (stripped.length > 0) {
+    return "content after cursor";
   }
 
   return;

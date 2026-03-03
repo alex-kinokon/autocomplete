@@ -37,6 +37,8 @@ export class EditTracker implements vscode.Disposable {
     string,
     { readonly uri: vscode.Uri; edits: EditRecord[] }
   >();
+  /** Whether the most recent edit in each document was a pure deletion. */
+  private readonly lastEditWasDeletion = new Map<string, boolean>();
   private readonly disposable: vscode.Disposable;
 
   constructor() {
@@ -50,10 +52,21 @@ export class EditTracker implements vscode.Disposable {
     this.disposable.dispose();
   }
 
+  /** Check whether the last edit in the given document was a pure deletion. */
+  wasLastEditDeletion(uri: vscode.Uri): boolean {
+    return this.lastEditWasDeletion.get(uri.toString()) ?? false;
+  }
+
   /** Record edits from a text document change event. */
   private recordEdit(event: vscode.TextDocumentChangeEvent): void {
     const key = event.document.uri.toString();
     const now = Date.now();
+
+    // Track whether this edit is a pure deletion (all changes have empty text)
+    this.lastEditWasDeletion.set(
+      key,
+      event.contentChanges.length > 0 && event.contentChanges.every(c => c.text === "")
+    );
 
     let entry = this.history.get(key);
     if (!entry) {

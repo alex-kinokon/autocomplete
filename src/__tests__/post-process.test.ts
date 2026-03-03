@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import type { DocumentContext } from "../context.ts";
 import {
   countBrackets,
+  countSuffixExcessClosers,
   postProcessCompletion,
+  trimSuffixOverlap,
   trimTrailingWhitespace,
   truncateAtBracketImbalance,
   truncateAtUnclosedString,
@@ -114,23 +116,27 @@ describe("trimTrailingWhitespace", () => {
 
 describe("countBrackets", () => {
   it("counts unclosed openers in balanced prefix", () => {
-    expect(countBrackets("foo(bar())")).toEqual({ "(": 0, "{": 0, "[": 0 });
+    expect(countBrackets("foo(bar())").toRecord()).toEqual({ "(": 0, "{": 0, "[": 0 });
   });
 
   it("counts unclosed openers", () => {
-    expect(countBrackets("function foo() {\n  ")).toEqual({ "(": 0, "{": 1, "[": 0 });
+    expect(countBrackets("function foo() {\n  ").toRecord()).toEqual({
+      "(": 0,
+      "{": 1,
+      "[": 0,
+    });
   });
 
   it("counts multiple unclosed openers", () => {
-    expect(countBrackets("if (x) { arr[")).toEqual({ "(": 0, "{": 1, "[": 1 });
+    expect(countBrackets("if (x) { arr[").toRecord()).toEqual({ "(": 0, "{": 1, "[": 1 });
   });
 
   it("clamps negatives to zero (extra closers in prefix)", () => {
-    expect(countBrackets("}")).toEqual({ "(": 0, "{": 0, "[": 0 });
+    expect(countBrackets("}").toRecord()).toEqual({ "(": 0, "{": 0, "[": 0 });
   });
 
   it("ignores brackets inside strings and comments", () => {
-    expect(countBrackets('"({[" // )]}')).toEqual({ "(": 0, "{": 0, "[": 0 });
+    expect(countBrackets('"({[" // )]}').toRecord()).toEqual({ "(": 0, "{": 0, "[": 0 });
   });
 });
 
@@ -158,8 +164,9 @@ describe("postProcessCompletion", () => {
     const input = "return 1;\n}  \n\n";
     const result = postProcessCompletion(input, mockContext);
     // The prefix "function foo() {\n  " has one unclosed brace,
-    // so the first } is valid but the second would be excess.
-    expect(result).toBe("return 1;\n}");
+    // but the suffix "\n}" already closes it, so adjusted count is 0.
+    // The } in the completion is now excess and gets truncated.
+    expect(result).toBe("return 1;");
   });
 
   it("passes through clean completions", () => {
@@ -176,5 +183,155 @@ describe("postProcessCompletion", () => {
       relatedSnippets: [],
     };
     expect(postProcessCompletion("}", context)).toBe("}");
+  });
+
+  it("strips duplicate ) when suffix already closes the prefix (", () => {
+    const context: DocumentContext = {
+      prefix: "console.log(",
+      suffix: ")",
+      languageId: "typescript",
+      relativePath: "src/index.ts",
+      relatedSnippets: [],
+    };
+    expect(postProcessCompletion('"hello")', context)).toBe('"hello"');
+  });
+
+  it("allows one ) when prefix has 2 unclosed ( and suffix closes 1", () => {
+    const context: DocumentContext = {
+      prefix: "foo(bar(",
+      suffix: ")",
+      languageId: "typescript",
+      relativePath: "src/index.ts",
+      relatedSnippets: [],
+    };
+    expect(postProcessCompletion('"baz")', context)).toBe('"baz")');
+  });
+
+  it("strips duplicate } in multi-line completion when suffix has }", () => {
+    const context: DocumentContext = {
+      prefix: "if (x) {\n  ",
+      suffix: "\n}",
+      languageId: "typescript",
+      relativePath: "src/index.ts",
+      relatedSnippets: [],
+    };
+    expect(postProcessCompletion("return 1;\n}", context)).toBe("return 1;");
+  });
+
+  it("keeps } when suffix is empty", () => {
+    const context: DocumentContext = {
+      prefix: "if (x) {\n  ",
+      suffix: "",
+      languageId: "typescript",
+      relativePath: "src/index.ts",
+      relatedSnippets: [],
+    };
+    expect(postProcessCompletion("return 1;\n}", context)).toBe("return 1;\n}");
+  });
+
+  it("trims same-line suffix overlap for arr[|];", () => {
+    const context: DocumentContext = {
+      prefix: "arr[",
+      suffix: "];",
+      languageId: "typescript",
+      relativePath: "src/index.ts",
+      relatedSnippets: [],
+    };
+    expect(postProcessCompletion("0];", context)).toBe("0");
+  });
+});
+
+describe("countSuffixExcessClosers", () => {
+  it("returns zeros for empty suffix", () => {
+    expect(countSuffixExcessClosers("").toRecord()).toEqual({ ")": 0, "}": 0, "]": 0 });
+  });
+
+  it("counts a single excess closer", () => {
+    expect(countSuffixExcessClosers(")").toRecord()).toEqual({ ")": 1, "}": 0, "]": 0 });
+  });
+
+  it("counts excess } in suffix with newline", () => {
+    expect(countSuffixExcessClosers("\n}").toRecord()).toEqual({
+      ")": 0,
+      "}": 1,
+      "]": 0,
+    });
+  });
+
+  it("does not count closers matched by openers within suffix", () => {
+    expect(countSuffixExcessClosers("(foo)").toRecord()).toEqual({
+      ")": 0,
+      "}": 0,
+      "]": 0,
+    });
+  });
+
+  it("counts only unmatched closers", () => {
+    // ) matches the (, but the second ) is excess
+    expect(countSuffixExcessClosers("(foo))").toRecord()).toEqual({
+      ")": 1,
+      "}": 0,
+      "]": 0,
+    });
+  });
+
+  it("ignores brackets in strings", () => {
+    expect(countSuffixExcessClosers('")"').toRecord()).toEqual({
+      ")": 0,
+      "}": 0,
+      "]": 0,
+    });
+  });
+
+  it("ignores brackets in comments", () => {
+    expect(countSuffixExcessClosers("// )\n}").toRecord()).toEqual({
+      ")": 0,
+      "}": 1,
+      "]": 0,
+    });
+  });
+
+  it("counts multiple bracket types", () => {
+    expect(countSuffixExcessClosers("];\n})").toRecord()).toEqual({
+      ")": 1,
+      "}": 1,
+      "]": 1,
+    });
+  });
+});
+
+describe("trimSuffixOverlap", () => {
+  it("returns completion unchanged when no overlap", () => {
+    expect(trimSuffixOverlap('"hello"', "world")).toBe('"hello"');
+  });
+
+  it("does not trim bracket closers (handled by bracket truncation)", () => {
+    expect(trimSuffixOverlap('"hello")', ")")).toBe('"hello")');
+  });
+
+  it("trims ; overlap but not ] (bracket handled by truncation)", () => {
+    // The ] is a bracket closer, not handled here. Only ; is trimmed.
+    expect(trimSuffixOverlap("0;", ";")).toBe("0");
+  });
+
+  it("does not trim non-closer characters", () => {
+    // "exam" overlaps with "ample" but 'a','m' etc are not closers
+    expect(trimSuffixOverlap("exam", "ample")).toBe("exam");
+  });
+
+  it("handles empty completion", () => {
+    expect(trimSuffixOverlap("", ")")).toBe("");
+  });
+
+  it("handles empty suffix", () => {
+    expect(trimSuffixOverlap('"hello")', "")).toBe('"hello")');
+  });
+
+  it("only considers first line of suffix", () => {
+    expect(trimSuffixOverlap("x;", ";\n}")).toBe("x");
+  });
+
+  it("trims trailing semicolons and whitespace overlap", () => {
+    expect(trimSuffixOverlap("x; ", "; ")).toBe("x");
   });
 });
