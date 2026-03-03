@@ -99,6 +99,8 @@ Formats de jetons FIM courants pour le mode personnalisé :
 | `autocomplete.systemPrompt` | string   |                             | Prompt système personnalisé pour les complétions en mode chat |
 | `autocomplete.excludeFiles` | string[] | `[]`                        | Motifs glob supplémentaires pour exclure des fichiers         |
 
+Les fichiers correspondant à `.env`, `.env.*`, `.npmrc`, `.pypirc`, `.netrc`, `.pgpass`, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.jks`, `*.keystore`, ainsi que les fichiers dans les répertoires `.ssh/`, `.aws/` ou `.gnupg/` sont toujours exclus. Utilisez `autocomplete.excludeFiles` pour ajouter des motifs supplémentaires (ex. `["*.log", "secrets.yaml"]`).
+
 Commandes (palette) : `Autocomplete : Activer`, `Autocomplete : Désactiver`, `Autocomplete : Choisir un modèle`, `Autocomplete : Choisir un modèle (Workspace)`, `Autocomplete : Définir la clé API`, `Autocomplete : Supprimer la clé API`.
 
 « Choisir un modèle » récupère la liste des modèles via `/v1/models`, compatible avec tout serveur au format OpenAI. Avec un serveur Ollama, des détails supplémentaires sont affichés (taille des paramètres, quantification, taille sur disque).

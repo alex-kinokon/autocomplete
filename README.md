@@ -99,6 +99,8 @@ Common FIM token formats for custom mode:
 | `autocomplete.systemPrompt` | string   |                             | Custom system prompt for chat completions            |
 | `autocomplete.excludeFiles` | string[] | `[]`                        | Additional glob patterns for files to exclude        |
 
+Files matching `.env`, `.env.*`, `.npmrc`, `.pypirc`, `.netrc`, `.pgpass`, `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.jks`, `*.keystore`, and files inside `.ssh/`, `.aws/`, or `.gnupg/` directories are always excluded. Use `autocomplete.excludeFiles` to add extra patterns (e.g. `["*.log", "secrets.yaml"]`).
+
 Commands (palette): `Autocomplete: Enable`, `Autocomplete: Disable`, `Autocomplete: Select Model`, `Autocomplete: Select Model (Workspace)`, `Autocomplete: Set API Key`, `Autocomplete: Clear API Key`. Select Model fetches the model list from any OpenAI-compatible server via `/v1/models`, and shows additional details (parameter size, quantization, disk size) when connected to Ollama.
 
 ## How it works
