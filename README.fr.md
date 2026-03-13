@@ -43,9 +43,9 @@ Ou utilisez un autre endpoint :
 
 ### FIM (Fill-in-the-Middle)
 
-En mode FIM, l’extension envoie au modèle le code avant et après le curseur via `/completions`, ce qui améliore la qualité des suggestions. Sans FIM, elle utilise `/chat/completions` à la place.
+En mode FIM, l’extension envoie au modèle le code avant et après le curseur via `/completions`, ce qui améliore la qualité des suggestions. Les modèles qui n’acceptent qu’un prompt brut utilisent aussi `/completions` ; les autres basculent sur `/chat/completions`.
 
-Par défaut, `autocomplete.fim.mode` vaut `"auto"` : l’extension détecte automatiquement la prise en charge du FIM. Elle vérifie d’abord s’il s’agit d’un serveur Ollama ; si c’est le cas, elle interroge le modèle pour vérifier ses capacités. Pour les autres serveurs, elle passe directement en mode chat. Vous pouvez aussi choisir le mode manuellement :
+Par défaut, `autocomplete.fim.mode` vaut `"auto"` : l’extension détecte automatiquement le meilleur mode de requête. Elle vérifie d’abord s’il s’agit d’un serveur Ollama ; si c’est le cas, elle interroge le modèle pour choisir entre FIM, complétion simple et chat selon ses capacités et son modèle. Pour les autres serveurs, elle passe directement en mode chat. Vous pouvez aussi choisir le mode manuellement :
 
 **Géré par le serveur** (Ollama, LM Studio) -- le serveur applique son propre formatage FIM :
 

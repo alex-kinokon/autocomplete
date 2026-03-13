@@ -7,7 +7,7 @@
 import * as vscode from "vscode";
 
 import * as log from "./log.ts";
-import type { AutocompleteConfig, FimConfig } from "./types.ts";
+import type { AutocompleteConfig, FimConfig, RequestMode } from "./types.ts";
 
 /** Maps each `autocomplete.*` setting key to its TypeScript type. */
 interface SettingsMap {
@@ -95,14 +95,17 @@ export function getConfig(
 
   const fimMode = get("fim.mode");
   let fim: FimConfig | undefined;
+  let requestMode: RequestMode = "chat";
   if (fimMode === "server-managed") {
     fim = true;
+    requestMode = "fim";
   } else if (fimMode === "custom") {
     const prefix = get("fim.prefix");
     const suffix = get("fim.suffix");
     const middle = get("fim.middle");
     if (prefix && suffix && middle) {
       fim = { prefix, suffix, middle };
+      requestMode = "fim";
     }
   }
 
@@ -115,8 +118,9 @@ export function getConfig(
     maxTokens: get("maxTokens"),
     temperature: get("temperature"),
     stop: get("stop"),
-    // "auto" and "off" → fim stays undefined (auto is resolved later by detectFimSupport)
+    // "auto" and "off" start in chat mode and may be refined later.
     fim,
+    requestMode,
     fimMode: fimMode as AutocompleteConfig["fimMode"],
     debounceMs: get("debounceMs"),
     contextLines: get("contextLines"),
@@ -176,29 +180,39 @@ export async function isOllamaServer(
 
 // FIM auto-detection
 
-/** Cache keyed by `endpoint::model`. `false` means "probed, no FIM support". */
-const fimCache = new Map<string, false | FimConfig>();
+interface AutoDetectedRequestMode {
+  readonly requestMode: RequestMode;
+  readonly fim?: FimConfig;
+}
+
+/** Cache keyed by `endpoint::model`. */
+const requestModeCache = new Map<string, AutoDetectedRequestMode>();
+
+function isPromptOnlyTemplate(template: unknown): boolean {
+  return typeof template === "string" && /^{{\s*\.Prompt\s*}}$/.test(template.trim());
+}
 
 /**
- * Probe the server to determine if the model supports FIM.
+ * Probe the server to determine the best request mode for the model.
  *
  * For Ollama servers, calls `/api/show` and checks for the `"insert"` capability.
- * For non-Ollama servers, skips the probe and returns `undefined` immediately.
+ * For prompt-only templates, prefers plain `/completions`. Otherwise falls back
+ * to chat mode. Non-Ollama servers skip the probe.
  * Results are cached per endpoint+model pair.
  */
-export async function detectFimSupport(
+export async function detectAutoRequestMode(
   endpoint: string,
   model: string,
   apiKey?: string
-): Promise<FimConfig | undefined> {
+): Promise<AutoDetectedRequestMode | undefined> {
   const key = apiKey ? `${endpoint}::${model}::${apiKey}` : `${endpoint}::${model}`;
-  const cached = fimCache.get(key);
-  if (cached !== undefined) return cached || undefined;
+  const cached = requestModeCache.get(key);
+  if (cached !== undefined) return cached;
 
   if (!(await isOllamaServer(endpoint, apiKey))) {
     // Don’t cache. `isOllamaServer` may have returned false due to a transient
     // network error. Its own cache handles confirmed non-Ollama results.
-    log.info(`Non-Ollama server at ${endpoint}, skipping FIM detection for ${model}`);
+    log.info(`Non-Ollama server at ${endpoint}, skipping mode detection for ${model}`);
     return;
   }
 
@@ -214,26 +228,35 @@ export async function detectFimSupport(
     if (!response.ok) {
       // Transient HTTP errors (401/429/500/startup race). Don’t cache,
       // retry on next request.
-      log.info(`FIM detection got HTTP ${response.status} for ${model}, will retry`);
+      log.info(`Mode detection got HTTP ${response.status} for ${model}, will retry`);
       return;
     }
 
     const data = (await response.json()) as {
       capabilities?: readonly string[];
+      template?: string;
     };
     if (Array.isArray(data.capabilities) && data.capabilities.includes("insert")) {
       log.info(`Auto-detected FIM support for ${model}`);
-      fimCache.set(key, true);
-      return true;
+      const result = { requestMode: "fim" as const, fim: true as const };
+      requestModeCache.set(key, result);
+      return result;
     }
 
-    // Successful probe explicitly reports no insert capability, safe to cache.
+    if (isPromptOnlyTemplate(data.template)) {
+      log.info(`Auto-detected plain completion mode for ${model}`);
+      const result = { requestMode: "completion" as const };
+      requestModeCache.set(key, result);
+      return result;
+    }
+
     log.info(`No FIM support detected for ${model}, using chat mode`);
-    fimCache.set(key, false);
-    return;
+    const result = { requestMode: "chat" as const };
+    requestModeCache.set(key, result);
+    return result;
   } catch {
     // Don’t cache network errors. Retry on next request
-    log.info(`FIM detection failed for ${model} (network error), will retry`);
+    log.info(`Mode detection failed for ${model} (network error), will retry`);
     return;
   }
 }
@@ -242,5 +265,5 @@ export async function detectFimSupport(
 export function clearServerCaches(): void {
   ollamaCache.clear();
   ollamaNegativeCache.clear();
-  fimCache.clear();
+  requestModeCache.clear();
 }

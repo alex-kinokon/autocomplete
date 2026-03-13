@@ -43,9 +43,9 @@ Or use a different endpoint:
 
 ### FIM (Fill-in-the-Middle)
 
-FIM uses the `/completions` endpoint and sends both the code before and after the cursor, producing better results with models that support it. Without FIM, the extension falls back to `/chat/completions`.
+FIM uses the `/completions` endpoint and sends both the code before and after the cursor, producing better results with models that support it. Models that only accept a raw prompt also use `/completions`; other models fall back to `/chat/completions`.
 
-By default, `autocomplete.fim.mode` is `"auto"` which auto-detects FIM support. The extension first checks whether the server is Ollama; if so, it probes the model’s capabilities. Non-Ollama servers skip this probe and fall back to chat mode. You can also set the mode explicitly:
+By default, `autocomplete.fim.mode` is `"auto"` which auto-detects the best request mode. The extension first checks whether the server is Ollama; if so, it probes the model’s capabilities and template to choose between FIM, plain completion, and chat. Non-Ollama servers skip this probe and default to chat mode. You can also set the mode explicitly:
 
 **Server-managed** (Ollama, LM Studio) -- the server applies its own FIM template:
 

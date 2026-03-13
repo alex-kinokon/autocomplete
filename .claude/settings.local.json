@@ -1,0 +1,63 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.continue.dev)",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:docs.ollama.com)",
+      "Bash(curl:*)",
+      "WebFetch(domain:ar5iv.labs.arxiv.org)",
+      "WebFetch(domain:sourcegraph.com)",
+      "WebFetch(domain:api-docs.deepseek.com)",
+      "WebFetch(domain:blog.continue.dev)",
+      "WebFetch(domain:docs.mistral.ai)",
+      "WebFetch(domain:ollama.com)",
+      "WebFetch(domain:deepwiki.com)",
+      "WebFetch(domain:www.themoonlight.io)",
+      "WebFetch(domain:www.semanticscholar.org)",
+      "WebFetch(domain:en.wikipedia.org)",
+      "WebFetch(domain:www.britannica.com)",
+      "WebFetch(domain:hellomusictheory.com)",
+      "WebFetch(domain:gamerules.com)",
+      "WebFetch(domain:www.learnjazzstandards.com)",
+      "WebFetch(domain:syncopatedtimes.com)",
+      "WebFetch(domain:docs.github.com)",
+      "WebFetch(domain:code.visualstudio.com)",
+      "WebFetch(domain:lmstudio.ai)",
+      "WebFetch(domain:github.blog)",
+      "WebFetch(domain:www.inceptionlabs.ai)",
+      "WebFetch(domain:qwenlm.github.io)",
+      "WebFetch(domain:safimbenchmark.com)",
+      "WebFetch(domain:mistral.ai)",
+      "WebFetch(domain:twinnydotdev.github.io)",
+      "WebFetch(domain:www.testingcatalog.com)",
+      "WebFetch(domain:tree-sitter.github.io)",
+      "WebFetch(domain:dev.to)",
+      "Bash(npx vitest:*)",
+      "Bash(npx:*)",
+      "WebFetch(domain:www.emergentmind.com)",
+      "WebFetch(domain:vnavarro.dev)",
+      "Bash(gh search:*)"
+    ]
+  },
+  "spinnerVerbs": {
+    "mode": "replace",
+    "verbs": [
+      "🦭 Barking",
+      "🦭 Flopping",
+      "🦭 Diving",
+      "🦭 Splashing",
+      "🦭 Sunbathing",
+      "🦭 Waddling",
+      "🦭 Honking",
+      "🦭 Balancing",
+      "🦭 Flippering",
+      "🦭 Whisker-twitching",
+      "🦭 Galumphing",
+      "🦭 Belly-slapping"
+    ]
+  }
+}

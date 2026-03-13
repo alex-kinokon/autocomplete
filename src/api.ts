@@ -1,9 +1,10 @@
 /**
  * API request layer.
  *
- * Supports two modes:
+ * Supports three request modes:
  * - FIM (`/completions`): sends prefix and suffix separately or with
  *   embedded tokens, depending on the FIM configuration.
+ * - Plain completion (`/completions`): sends only the prefix as a raw prompt.
  * - Chat (`/chat/completions`): falls back to a system-prompted chat
  *   completion when FIM is not available.
  */
@@ -60,7 +61,7 @@ export class UnsupportedModeError extends Error {
   }
 }
 
-/** Dispatch a completion request using FIM or chat mode based on config. */
+/** Dispatch a completion request using the resolved model request mode. */
 export async function requestCompletion(
   config: AutocompleteConfig,
   context: DocumentContext,
@@ -76,9 +77,86 @@ export async function requestCompletion(
     headers.Authorization = `Bearer ${config.apiKey}`;
   }
 
-  return config.fim
-    ? requestFimCompletion(config, context, headers, signal)
-    : requestChatCompletion(config, context, headers, signal);
+  if (config.requestMode === "fim") {
+    return requestFimCompletion(config, context, headers, signal);
+  }
+
+  if (config.requestMode === "completion") {
+    return requestPlainCompletion(config, context, headers, signal);
+  }
+
+  return requestChatCompletion(config, context, headers, signal);
+}
+
+function buildCompletionPreamble(context: DocumentContext): string {
+  const comment = commentPrefix(context.languageId);
+  let preamble = `${comment} Path: ${context.relativePath}\n`;
+  if (context.relatedSnippets.length > 0) {
+    preamble += formatSnippetsAsComments(context.relatedSnippets, comment);
+  }
+  return preamble;
+}
+
+async function requestPlainCompletion(
+  config: AutocompleteConfig,
+  context: DocumentContext,
+  headers: Record<string, string>,
+  signal: AbortSignal
+): Promise<string | undefined> {
+  const { endpoint, model, maxTokens, temperature } = config;
+  const stop = mergeStopTokens(config.stop, model);
+  const preamble = buildCompletionPreamble(context);
+  const url = `${normalizeEndpoint(endpoint)}/completions`;
+  const { relatedSnippets, prefix } = context;
+  const body: CompletionCreateParamsNonStreaming = {
+    model,
+    prompt: preamble + prefix,
+    max_tokens: maxTokens,
+    temperature,
+    stop,
+    stream: false,
+  };
+
+  log.debug(`Completion mode: plain`);
+  log.debug(`Preamble:\n${preamble}`);
+  log.debug(`Prefix (${prefix.length} chars):\n${prefix}`);
+  log.debug(
+    `Related snippets: ${relatedSnippets.length} files: [${relatedSnippets.map(s => s.relativePath).join(", ")}]`
+  );
+  log.debug(`Completion request URL: ${url}`);
+  log.debug(`Completion request body:\n${JSON.stringify(body, null, 2)}`);
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+    signal,
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    log.error(`Completion request failed: ${response.status}`, text);
+    throwApiError(response.status, text, model);
+  }
+
+  let data: Partial<CompletionResponse>;
+  try {
+    data = (await response.json()) as Partial<CompletionResponse>;
+  } catch {
+    log.error("Completion response is not valid JSON");
+    return;
+  }
+  log.debug(`Completion raw response:\n${JSON.stringify(data, null, 2)}`);
+
+  const raw = data.choices?.[0]?.text;
+  if (!raw) return;
+
+  log.debug(`Completion raw text: ${JSON.stringify(raw)}`);
+
+  const cleaned = postProcessCompletion(cleanCompletion(raw), context);
+  log.debug(`Completion cleaned text: ${JSON.stringify(cleaned)}`);
+
+  return cleaned || undefined;
 }
 
 // FIM mode (/completions)
@@ -100,19 +178,14 @@ async function requestFimCompletion(
 ): Promise<string | undefined> {
   const { fim, endpoint, model, maxTokens, temperature } = config;
   const stop = mergeStopTokens(config.stop, model);
-
-  const comment = commentPrefix(context.languageId);
-  let preamble = `${comment} Path: ${context.relativePath}\n`;
-  if (context.relatedSnippets.length > 0) {
-    preamble += formatSnippetsAsComments(context.relatedSnippets, comment);
-  }
+  const preamble = buildCompletionPreamble(context);
 
   const url = `${normalizeEndpoint(endpoint)}/completions`;
   const { relatedSnippets, prefix, suffix } = context;
 
   const body: CompletionCreateParamsNonStreaming =
     fim === true
-      ? // Manual token embedding: <prefix>code<suffix>code<middle>
+      ? // Server-managed FIM: Ollama/LM Studio apply their own template.
         {
           model,
           prompt: preamble + prefix,

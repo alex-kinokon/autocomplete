@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 
 import {
   clearServerCaches,
-  detectFimSupport,
+  detectAutoRequestMode,
   getAuthHeaders,
   getConfig,
   isOllamaServer,
@@ -87,6 +87,7 @@ describe("getConfig", () => {
 
     const config = getConfig(makeDocument());
     expect(config!.fim).toBe(true);
+    expect(config!.requestMode).toBe("fim");
     expect(config!.fimMode).toBe("server-managed");
   });
 
@@ -106,6 +107,7 @@ describe("getConfig", () => {
       suffix: "<SUF>",
       middle: "<MID>",
     });
+    expect(config!.requestMode).toBe("fim");
   });
 
   it("falls back to undefined FIM when custom tokens are incomplete", () => {
@@ -119,9 +121,10 @@ describe("getConfig", () => {
 
     const config = getConfig(makeDocument());
     expect(config!.fim).toBeUndefined();
+    expect(config!.requestMode).toBe("chat");
   });
 
-  it("leaves fim undefined for auto and off modes", () => {
+  it("leaves fim undefined and starts in chat mode for auto and off modes", () => {
     for (const mode of ["auto", "off"]) {
       mockConfiguration({
         endpoint: "http://localhost:11434/v1",
@@ -131,6 +134,7 @@ describe("getConfig", () => {
 
       const config = getConfig(makeDocument());
       expect(config!.fim).toBeUndefined();
+      expect(config!.requestMode).toBe("chat");
       expect(config!.fimMode).toBe(mode);
     }
   });
@@ -321,7 +325,7 @@ describe("isOllamaServer", () => {
   });
 });
 
-describe("detectFimSupport", () => {
+describe("detectAutoRequestMode", () => {
   beforeEach(() => {
     clearServerCaches();
     vi.stubGlobal("fetch", vi.fn());
@@ -331,18 +335,18 @@ describe("detectFimSupport", () => {
     vi.unstubAllGlobals();
   });
 
-  it("returns true when Ollama reports insert capability", async () => {
+  it("returns FIM mode when Ollama reports insert capability", async () => {
     // First call: isOllamaServer probe → "Ollama is running"
     // Second call: /api/show → capabilities
     vi.mocked(fetch)
       .mockResolvedValueOnce(textResponse("Ollama is running"))
       .mockResolvedValueOnce(jsonResponse({ capabilities: ["completion", "insert"] }));
 
-    const result = await detectFimSupport(
+    const result = await detectAutoRequestMode(
       "http://localhost:11434/v1",
       "qwen2.5-coder:1.5b"
     );
-    expect(result).toBe(true);
+    expect(result).toEqual({ requestMode: "fim", fim: true });
 
     // Verify both calls were made
     expect(fetch).toHaveBeenCalledTimes(2);
@@ -358,19 +362,35 @@ describe("detectFimSupport", () => {
     );
   });
 
-  it("returns undefined when model lacks insert capability", async () => {
+  it("returns completion mode for prompt-only templates", async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(textResponse("Ollama is running"))
-      .mockResolvedValueOnce(jsonResponse({ capabilities: ["completion"] }));
+      .mockResolvedValueOnce(
+        jsonResponse({ capabilities: ["completion"], template: "{{ .Prompt }}" })
+      );
 
-    const result = await detectFimSupport("http://localhost:11434/v1", "llama3");
-    expect(result).toBeUndefined();
+    const result = await detectAutoRequestMode("http://localhost:11434/v1", "llama3");
+    expect(result).toEqual({ requestMode: "completion" });
+  });
+
+  it("returns chat mode when model lacks insert capability and is not prompt-only", async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(textResponse("Ollama is running"))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          capabilities: ["completion"],
+          template: "{{ .System }}{{ .Prompt }}",
+        })
+      );
+
+    const result = await detectAutoRequestMode("http://localhost:11434/v1", "llama3");
+    expect(result).toEqual({ requestMode: "chat" });
   });
 
   it("skips /api/show for non-Ollama servers", async () => {
     vi.mocked(fetch).mockResolvedValue(textResponse("OK"));
 
-    const result = await detectFimSupport("http://localhost:8080/v1", "test-model");
+    const result = await detectAutoRequestMode("http://localhost:8080/v1", "test-model");
     expect(result).toBeUndefined();
 
     // Only the isOllamaServer probe should have been called
@@ -383,11 +403,11 @@ describe("detectFimSupport", () => {
   it("returns undefined when server is unreachable", async () => {
     vi.mocked(fetch).mockRejectedValue(new Error("ECONNREFUSED"));
 
-    const result = await detectFimSupport("http://localhost:99999/v1", "test");
+    const result = await detectAutoRequestMode("http://localhost:99999/v1", "test");
     expect(result).toBeUndefined();
   });
 
-  it("does not cache false when /api/show returns non-OK HTTP status", async () => {
+  it("does not cache when /api/show returns non-OK HTTP status", async () => {
     vi.mocked(fetch)
       // First: isOllamaServer succeeds
       .mockResolvedValueOnce(textResponse("Ollama is running"))
@@ -399,33 +419,36 @@ describe("detectFimSupport", () => {
       } as Response)
       // Second: isOllamaServer cached from first call
       // Second: /api/show succeeds
-      .mockResolvedValueOnce(jsonResponse({ capabilities: ["insert"] }));
+      .mockResolvedValueOnce(
+        jsonResponse({ capabilities: ["completion"], template: "{{ .Prompt }}" })
+      );
 
-    const r1 = await detectFimSupport("http://localhost:11434/v1", "model");
+    const r1 = await detectAutoRequestMode("http://localhost:11434/v1", "model");
     expect(r1).toBeUndefined();
 
-    // Should re-probe (not serve cached false)
-    const r2 = await detectFimSupport("http://localhost:11434/v1", "model");
-    expect(r2).toBe(true);
+    const r2 = await detectAutoRequestMode("http://localhost:11434/v1", "model");
+    expect(r2).toEqual({ requestMode: "completion" });
   });
 
-  it("recovers FIM detection after transient isOllamaServer failure once TTL expires", async () => {
+  it("recovers mode detection after transient isOllamaServer failure once TTL expires", async () => {
     const now = vi.spyOn(Date, "now").mockReturnValue(1000);
     vi.mocked(fetch)
       // First call: network error from isOllamaServer
       .mockRejectedValueOnce(new Error("ECONNREFUSED"))
       // Second call: server recovered, isOllamaServer succeeds
       .mockResolvedValueOnce(textResponse("Ollama is running"))
-      // Second call: /api/show returns FIM support
-      .mockResolvedValueOnce(jsonResponse({ capabilities: ["insert"] }));
+      // Second call: /api/show returns prompt-only completion support
+      .mockResolvedValueOnce(
+        jsonResponse({ capabilities: ["completion"], template: "{{ .Prompt }}" })
+      );
 
-    const r1 = await detectFimSupport("http://localhost:11434/v1", "model");
+    const r1 = await detectAutoRequestMode("http://localhost:11434/v1", "model");
     expect(r1).toBeUndefined();
 
     // Advance past negative cache TTL
     now.mockReturnValue(1000 + 31_000);
-    const r2 = await detectFimSupport("http://localhost:11434/v1", "model");
-    expect(r2).toBe(true);
+    const r2 = await detectAutoRequestMode("http://localhost:11434/v1", "model");
+    expect(r2).toEqual({ requestMode: "completion" });
 
     now.mockRestore();
   });
@@ -435,7 +458,7 @@ describe("detectFimSupport", () => {
       .mockResolvedValueOnce(textResponse("Ollama is running"))
       .mockResolvedValueOnce(jsonResponse({ capabilities: ["insert"] }));
 
-    await detectFimSupport("http://localhost:11434/v1", "model", "sk-test-key");
+    await detectAutoRequestMode("http://localhost:11434/v1", "model", "sk-test-key");
 
     const ollamaHeaders = vi.mocked(fetch).mock.calls[0]![1]!.headers as Record<
       string,
@@ -453,22 +476,26 @@ describe("detectFimSupport", () => {
   it("caches results per endpoint+model", async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(textResponse("Ollama is running"))
-      .mockResolvedValueOnce(jsonResponse({ capabilities: ["insert"] }));
+      .mockResolvedValueOnce(
+        jsonResponse({ capabilities: ["completion"], template: "{{ .Prompt }}" })
+      );
 
-    await detectFimSupport("http://localhost:11434/v1", "model-a");
-    await detectFimSupport("http://localhost:11434/v1", "model-a");
+    await detectAutoRequestMode("http://localhost:11434/v1", "model-a");
+    await detectAutoRequestMode("http://localhost:11434/v1", "model-a");
 
-    // isOllamaServer (1) + /api/show (1) = 2, second detectFimSupport is cached
+    // isOllamaServer (1) + /api/show (1) = 2, second detectAutoRequestMode is cached
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
-  it("caches negative results too", async () => {
+  it("caches chat-mode results too", async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(textResponse("Ollama is running"))
-      .mockResolvedValueOnce(jsonResponse({ capabilities: [] }));
+      .mockResolvedValueOnce(
+        jsonResponse({ capabilities: [], template: "{{ .System }}{{ .Prompt }}" })
+      );
 
-    await detectFimSupport("http://localhost:11434/v1", "no-fim");
-    await detectFimSupport("http://localhost:11434/v1", "no-fim");
+    await detectAutoRequestMode("http://localhost:11434/v1", "no-fim");
+    await detectAutoRequestMode("http://localhost:11434/v1", "no-fim");
 
     expect(fetch).toHaveBeenCalledTimes(2);
   });
@@ -476,31 +503,39 @@ describe("detectFimSupport", () => {
   it("caches separately for different API keys", async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(textResponse("Ollama is running"))
-      .mockResolvedValueOnce(jsonResponse({ capabilities: ["insert"] }))
+      .mockResolvedValueOnce(
+        jsonResponse({ capabilities: ["completion"], template: "{{ .Prompt }}" })
+      )
       .mockResolvedValueOnce(textResponse("Ollama is running"))
-      .mockResolvedValueOnce(jsonResponse({ capabilities: [] }));
+      .mockResolvedValueOnce(
+        jsonResponse({ capabilities: [], template: "{{ .System }}{{ .Prompt }}" })
+      );
 
-    const r1 = await detectFimSupport("http://localhost:11434/v1", "model", "key-a");
-    const r2 = await detectFimSupport("http://localhost:11434/v1", "model", "key-b");
+    const r1 = await detectAutoRequestMode("http://localhost:11434/v1", "model", "key-a");
+    const r2 = await detectAutoRequestMode("http://localhost:11434/v1", "model", "key-b");
 
-    expect(r1).toBe(true);
-    expect(r2).toBeUndefined();
+    expect(r1).toEqual({ requestMode: "completion" });
+    expect(r2).toEqual({ requestMode: "chat" });
     expect(fetch).toHaveBeenCalledTimes(4);
   });
 
   it("clearServerCaches resets both caches", async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(textResponse("Ollama is running"))
-      .mockResolvedValueOnce(jsonResponse({ capabilities: ["insert"] }))
+      .mockResolvedValueOnce(
+        jsonResponse({ capabilities: ["completion"], template: "{{ .Prompt }}" })
+      )
       // After cache clear: isOllamaServer probe again + /api/show again
       .mockResolvedValueOnce(textResponse("Ollama is running"))
-      .mockResolvedValueOnce(jsonResponse({ capabilities: ["insert"] }));
+      .mockResolvedValueOnce(
+        jsonResponse({ capabilities: ["completion"], template: "{{ .Prompt }}" })
+      );
 
-    await detectFimSupport("http://localhost:11434/v1", "model");
+    await detectAutoRequestMode("http://localhost:11434/v1", "model");
     clearServerCaches();
-    await detectFimSupport("http://localhost:11434/v1", "model");
+    await detectAutoRequestMode("http://localhost:11434/v1", "model");
 
-    // 2 calls per detectFimSupport (isOllamaServer + /api/show) × 2 = 4
+    // 2 calls per detectAutoRequestMode (isOllamaServer + /api/show) × 2 = 4
     expect(fetch).toHaveBeenCalledTimes(4);
   });
 });

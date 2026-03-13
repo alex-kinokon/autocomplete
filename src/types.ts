@@ -13,6 +13,7 @@ export interface FimTokens {
  *   Embeds FIM tokens directly into the prompt string.
  */
 export type FimConfig = true | FimTokens;
+export type RequestMode = "chat" | "completion" | "fim";
 
 /** Resolved configuration for a completion request. */
 export interface AutocompleteConfig {
@@ -29,11 +30,13 @@ export interface AutocompleteConfig {
   /** Sequences that terminate generation. */
   readonly stop: string[];
   /**
-   * Resolved FIM configuration. `undefined` means FIM is disabled (use chat).
-   * Set by {@link getConfig} for explicit modes, or by {@link detectFimSupport}
-   * when `fimMode` is `"auto"`.
+   * Resolved FIM configuration. Present only when `requestMode === "fim"`.
+   * Set by {@link getConfig} for explicit modes, or by auto-detection when
+   * `fimMode` is `"auto"`.
    */
   fim?: FimConfig;
+  /** Resolved request path for the current model. */
+  requestMode: RequestMode;
   /** Raw setting value. Determines how `fim` is resolved. */
   readonly fimMode: "auto" | "custom" | "off" | "server-managed";
   /** Milliseconds to wait after the last keystroke before requesting. */

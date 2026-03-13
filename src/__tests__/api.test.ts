@@ -24,6 +24,7 @@ function makeConfig(overrides: Partial<AutocompleteConfig> = {}): AutocompleteCo
     maxTokens: 128,
     temperature: 0.2,
     stop: ["\n\n"],
+    requestMode: "chat",
     fimMode: "off",
     debounceMs: 0,
     contextLines: 100,
@@ -130,7 +131,7 @@ describe("requestCompletion", () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse as Response);
 
     const result = await requestCompletion(
-      makeConfig({ fim: true, fimMode: "server-managed" }),
+      makeConfig({ fim: true, requestMode: "fim", fimMode: "server-managed" }),
       mockContext,
       AbortSignal.timeout(5000)
     );
@@ -160,7 +161,7 @@ describe("requestCompletion", () => {
       middle: "<|fim_middle|>",
     };
     await requestCompletion(
-      makeConfig({ fim, fimMode: "custom" }),
+      makeConfig({ fim, requestMode: "fim", fimMode: "custom" }),
       mockContext,
       AbortSignal.timeout(5000)
     );
@@ -187,6 +188,31 @@ describe("requestCompletion", () => {
 
     const headers = vi.mocked(fetch).mock.calls[0]![1]!.headers as Record<string, string>;
     expect(headers.Authorization).toBe("Bearer sk-test-123");
+  });
+
+  it("sends a plain completion request when requestMode is completion", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [{ text: "const x = 1;" }],
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as Response);
+
+    const result = await requestCompletion(
+      makeConfig({ requestMode: "completion" }),
+      mockContext,
+      AbortSignal.timeout(5000)
+    );
+
+    expect(result).toBe("const x = 1;");
+    const [url, init] = vi.mocked(fetch).mock.calls[0]!;
+    expect(url).toBe("http://localhost:11434/v1/completions");
+    const body = JSON.parse(init!.body as string);
+    expect(body.prompt).toContain("// Path: src/index.ts");
+    expect(body.prompt).toContain('import fs from "fs";');
+    expect(body.suffix).toBeUndefined();
   });
 
   it("throws on non-OK response", async () => {
@@ -243,7 +269,7 @@ describe("requestCompletion", () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse as Response);
 
     await requestCompletion(
-      makeConfig({ fim: true, fimMode: "server-managed" }),
+      makeConfig({ fim: true, requestMode: "fim", fimMode: "server-managed" }),
       { ...mockContext, suffix: "" },
       AbortSignal.timeout(5000)
     );
@@ -407,7 +433,7 @@ describe("requestCompletion", () => {
       prefix: 'console.log("</prefix>");\n',
     };
     await requestCompletion(
-      makeConfig({ fim: true, fimMode: "server-managed" }),
+      makeConfig({ fim: true, requestMode: "fim", fimMode: "server-managed" }),
       context,
       AbortSignal.timeout(5000)
     );
@@ -429,7 +455,7 @@ describe("requestCompletion", () => {
       relatedSnippets: [{ relativePath: "utils.ts", content: "export const FOO = 1;" }],
     };
     await requestCompletion(
-      makeConfig({ fim: true, fimMode: "server-managed" }),
+      makeConfig({ fim: true, requestMode: "fim", fimMode: "server-managed" }),
       context,
       AbortSignal.timeout(5000)
     );
@@ -454,7 +480,7 @@ describe("requestCompletion", () => {
       relatedSnippets: [{ relativePath: "header.html", content: "<h1>Title</h1>" }],
     };
     await requestCompletion(
-      makeConfig({ fim: true, fimMode: "server-managed" }),
+      makeConfig({ fim: true, requestMode: "fim", fimMode: "server-managed" }),
       context,
       AbortSignal.timeout(5000)
     );
@@ -482,7 +508,7 @@ describe("requestCompletion", () => {
       relatedSnippets: [{ relativePath: "vars.css", content: ":root { --x: 1; }" }],
     };
     await requestCompletion(
-      makeConfig({ fim: true, fimMode: "server-managed" }),
+      makeConfig({ fim: true, requestMode: "fim", fimMode: "server-managed" }),
       context,
       AbortSignal.timeout(5000)
     );

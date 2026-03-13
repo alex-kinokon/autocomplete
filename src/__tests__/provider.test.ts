@@ -194,12 +194,13 @@ vi.mock("../config.ts", () => ({
     maxTokens: 128,
     temperature: 0,
     stop: ["\n\n"],
+    requestMode: "chat",
     fimMode: "off",
     debounceMs: 0,
     contextLines: 100,
     systemPrompt: "",
   })),
-  detectFimSupport: vi.fn<() => Promise<undefined>>(() => Promise.resolve(undefined)),
+  detectAutoRequestMode: vi.fn<() => Promise<undefined>>(() => Promise.resolve(undefined)),
   getSetting: vi.fn<() => string[]>(() => []),
 }));
 

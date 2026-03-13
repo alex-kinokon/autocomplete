@@ -172,9 +172,9 @@
   },
   "scripts": {
     "copy-grammars": "mkdir -p dist/grammars && cp node_modules/tree-sitter-wasms/out/*.wasm dist/grammars/ && cp node_modules/web-tree-sitter/tree-sitter.wasm dist/grammars/",
-    "bundle": "esbuild src/extension.ts --bundle --platform=node --target=node22 --outdir=dist --external:vscode --format=esm --splitting --sourcemap --banner:js=\"/* eslint-disable */\"",
-    "build": "npm run bundle -- --define:process.env.NODE_ENV=\\\"production\\\" && npm run copy-grammars",
-    "watch": "npm run bundle -- --define:process.env.NODE_ENV=\\\"development\\\" --watch",
+    "bundle-internal": "esbuild src/extension.ts --bundle --platform=node --target=node22 --outdir=dist --external:vscode --format=esm --splitting --sourcemap --banner:js=\"/* eslint-disable */\"",
+    "build": "npm run bundle-internal -- --define:process.env.NODE_ENV=\\\"production\\\" && npm run copy-grammars",
+    "watch": "npm run bundle-internal -- --define:process.env.NODE_ENV=\\\"development\\\" --watch",
     "package": "vsce package --no-dependencies",
     "l10n:check": "node scripts/check-l10n.ts",
     "install:codium": "codium --install-extension *.vsix",
