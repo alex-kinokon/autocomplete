@@ -14,7 +14,7 @@ import {
   UnsupportedModeError,
   requestCompletion,
 } from "./api.ts";
-import { detectFimSupport, getApiKey, getConfig, getSetting } from "./config.ts";
+import { detectAutoRequestMode, getApiKey, getConfig, getSetting } from "./config.ts";
 import { extractContext } from "./context.ts";
 import type { DefinitionCache } from "./definition-cache.ts";
 import type { EditTracker } from "./edit-tracker.ts";
@@ -118,14 +118,22 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
 
       // Resolve FIM auto-detection on first request (result is cached)
       if (config.fimMode === "auto") {
-        config.fim = await detectFimSupport(config.endpoint, config.model, config.apiKey);
+        const detected = await detectAutoRequestMode(
+          config.endpoint,
+          config.model,
+          config.apiKey
+        );
+        if (detected) {
+          config.requestMode = detected.requestMode;
+          config.fim = detected.fim;
+        }
       }
 
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- can change across await
       if (token.isCancellationRequested || controller.signal.aborted) return;
 
       log.info(
-        `Requesting completion for ${docContext.relativePath}:${position.line + 1} (${config.fim ? "FIM" : "chat"}, ${config.model})`
+        `Requesting completion for ${docContext.relativePath}:${position.line + 1} (${config.requestMode}, ${config.model})`
       );
       const t0 = Date.now();
       let completion = await requestCompletion(config, docContext, controller.signal);

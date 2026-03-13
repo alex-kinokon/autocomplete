@@ -356,6 +356,7 @@ export async function getDefinitionSnippets(
       for (const loc of locations) {
         // Skip self-references
         if (loc.uri.toString() === document.uri.toString()) continue;
+        if (isExcludedFile(loc.uri.fsPath)) continue;
 
         const folder = vscode.workspace.getWorkspaceFolder(loc.uri);
         const relativePath = folder
@@ -365,7 +366,6 @@ export async function getDefinitionSnippets(
         // Skip duplicates and node_modules
         if (existingPaths.has(relativePath)) continue;
         if (relativePath.includes("node_modules")) continue;
-        if (isExcludedFile(loc.uri.fsPath)) continue;
 
         try {
           const defDoc = await vscode.workspace.openTextDocument(loc.uri);
