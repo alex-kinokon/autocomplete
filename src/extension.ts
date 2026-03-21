@@ -22,11 +22,21 @@ export function activate(context: vscode.ExtensionContext): void {
 
   if (getSetting("debug")) {
     log.warn("Debug mode is enabled. Verbose logging may affect performance");
-    void vscode.window.showWarningMessage(
-      vscode.l10n.t(
-        "Autocomplete: debug mode is enabled. Disable it when not troubleshooting."
+    const disable = vscode.l10n.t("Disable Debug Mode");
+    void vscode.window
+      .showWarningMessage(
+        vscode.l10n.t(
+          "Autocomplete: debug mode is enabled. Disable it when not troubleshooting."
+        ),
+        disable
       )
-    );
+      .then(choice => {
+        if (choice === disable) {
+          void vscode.workspace
+            .getConfiguration("autocomplete")
+            .update("debug", false, vscode.ConfigurationTarget.Global);
+        }
+      });
   }
 
   const editTracker = new EditTracker();
@@ -62,6 +72,11 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("autocomplete.selectModelWorkspace", () =>
       selectModel(vscode.ConfigurationTarget.Workspace)
     ),
+    vscode.commands.registerCommand("autocomplete.disableDebug", async () => {
+      await vscode.workspace
+        .getConfiguration("autocomplete")
+        .update("debug", false, vscode.ConfigurationTarget.Global);
+    }),
     vscode.commands.registerCommand("autocomplete.setApiKey", async () => {
       const key = await vscode.window.showInputBox({
         title: vscode.l10n.t("Set API Key"),

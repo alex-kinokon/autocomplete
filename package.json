@@ -12,7 +12,7 @@
   "icon": "assets/icon.png",
   "l10n": "./l10n",
   "engines": {
-    "vscode": "^1.109.0"
+    "vscode": "^1.110.0"
   },
   "activationEvents": [
     "onStartupFinished"
@@ -153,6 +153,10 @@
         "title": "%command.selectModelWorkspace%"
       },
       {
+        "command": "autocomplete.disableDebug",
+        "title": "%command.disableDebug%"
+      },
+      {
         "command": "autocomplete.setApiKey",
         "title": "%command.setApiKey%"
       },
@@ -163,6 +167,10 @@
     ],
     "menus": {
       "commandPalette": [
+        {
+          "command": "autocomplete.disableDebug",
+          "when": "config.autocomplete.debug"
+        },
         {
           "command": "autocomplete.selectModelWorkspace",
           "when": "workspaceFolderCount > 0"
@@ -188,24 +196,24 @@
     "@aet/eslint-rules": "^2.0.123"
   },
   "devDependencies": {
-    "@esbuild/darwin-arm64": "^0.27.3",
-    "@esbuild/linux-arm64": "^0.27.3",
+    "@esbuild/darwin-arm64": "^0.27.4",
+    "@esbuild/linux-arm64": "^0.27.4",
     "@rollup/rollup-linux-arm64-gnu": "^4.59.0",
-    "@types/node": "^25.3.3",
+    "@types/node": "^25.5.0",
     "@types/picomatch": "^4.0.2",
-    "@types/vscode": "^1.109.0",
+    "@types/vscode": "^1.110.0",
     "@unrs/resolver-binding-linux-arm64-gnu": "^1.11.1",
-    "@vitest/eslint-plugin": "^1.6.9",
+    "@vitest/eslint-plugin": "^1.6.12",
     "@vscode/vsce": "^3.7.1",
-    "esbuild": "^0.27.3",
-    "eslint": "^9.39.3",
-    "lru-cache": "^11.2.6",
-    "openai": "^6.25.0",
+    "esbuild": "^0.27.4",
+    "eslint": "^9.39.4",
+    "lru-cache": "^11.2.7",
+    "openai": "^6.32.0",
     "picomatch": "^4.0.3",
     "prettier": "^3.8.1",
     "tree-sitter-wasms": "^0.1.13",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.18",
+    "vitest": "^4.1.0",
     "web-tree-sitter": "0.25.10"
   },
   "prettier": {
@@ -215,5 +223,9 @@
     "semi": true,
     "singleQuote": false,
     "trailingComma": "es5"
-  }
+  },
+  "trustedDependencies": [
+    "@vscode/vsce-sign",
+    "unrs-resolver"
+  ]
 }

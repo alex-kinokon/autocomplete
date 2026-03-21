@@ -24,6 +24,7 @@
   "command.disable": "Autocomplete: Disable",
   "command.selectModel": "Autocomplete: Select Model (Global)",
   "command.selectModelWorkspace": "Autocomplete: Select Model (Workspace)",
+  "command.disableDebug": "Autocomplete: Disable Debug Mode",
   "command.setApiKey": "Autocomplete: Set API Key",
   "command.clearApiKey": "Autocomplete: Clear API Key"
 }

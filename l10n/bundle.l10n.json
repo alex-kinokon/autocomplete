@@ -10,6 +10,7 @@
   "Enter your API key for authenticated endpoints": "Enter your API key for authenticated endpoints",
   "Autocomplete: API key saved.": "Autocomplete: API key saved.",
   "Autocomplete: API key cleared.": "Autocomplete: API key cleared.",
+  "Disable Debug Mode": "Disable Debug Mode",
   "Autocomplete: debug mode is enabled. Disable it when not troubleshooting.": "Autocomplete: debug mode is enabled. Disable it when not troubleshooting.",
   "Autocomplete: request failed. Is {0} reachable?": "Autocomplete: request failed. Is {0} reachable?",
   "Autocomplete: model \"{0}\" not found.": "Autocomplete: model \"{0}\" not found.",

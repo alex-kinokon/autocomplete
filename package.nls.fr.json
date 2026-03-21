@@ -25,6 +25,7 @@
   "command.disable": "Autocomplete : Désactiver",
   "command.selectModel": "Autocomplete : Choisir un modèle (global)",
   "command.selectModelWorkspace": "Autocomplete : Choisir un modèle (espace de travail)",
+  "command.disableDebug": "Autocomplete : Désactiver le mode débogage",
   "command.setApiKey": "Autocomplete : Définir la clé API",
   "command.clearApiKey": "Autocomplete : Effacer la clé API"
 }

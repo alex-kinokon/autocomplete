@@ -10,6 +10,7 @@
   "Enter your API key for authenticated endpoints": "Entrez votre clé API pour les points d'accès authentifiés",
   "Autocomplete: API key saved.": "Autocomplete : clé API enregistrée.",
   "Autocomplete: API key cleared.": "Autocomplete : clé API supprimée.",
+  "Disable Debug Mode": "Désactiver le mode débogage",
   "Autocomplete: debug mode is enabled. Disable it when not troubleshooting.": "Autocomplete : le mode débogage est activé. Désactivez-le en dehors du dépannage.",
   "Autocomplete: request failed. Is {0} reachable?": "Autocomplete : la requête a échoué. {0} est-il accessible ?",
   "Autocomplete: model \"{0}\" not found.": "Autocomplete : modèle « {0} » introuvable.",

@@ -199,7 +199,10 @@ function normalizeLocations(
   const items = Array.isArray(result) ? result : [result];
   return items.map(loc =>
     isLocationLink(loc)
-      ? ({ uri: loc.targetUri, range: loc.targetSelectionRange } as vscode.Location)
+      ? ({
+          uri: loc.targetUri,
+          range: loc.targetSelectionRange ?? loc.targetRange,
+        } as vscode.Location)
       : loc
   );
 }
