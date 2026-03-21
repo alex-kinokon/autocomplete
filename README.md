@@ -9,14 +9,14 @@ This is not an agentic coding extension. It provides autocompletion and only aut
 ## Setup
 
 ```sh
-pnpm install
-pnpm run build
+bun install
+bun run build
 ```
 
 To test locally, use the “Run Extension” launch configuration (Run and Debug panel) to open an Extension Development Host. Or package as a VSIX:
 
 ```sh
-pnpm run package
+bun run package
 code --install-extension *.vsix
 # or if you use VSCodium
 codium --install-extension *.vsix
@@ -121,19 +121,25 @@ GNU General Public License v3.0 or later.
 ## Development
 
 ```sh
-pnpm build          # bundle to dist/
-pnpm watch          # rebuild on change
-pnpm typecheck      # run tsc --noEmit
-pnpm lint           # run eslint
-pnpm lint:fix       # run eslint --fix
-pnpm test           # run vitest
+bun run build          # bundle to dist/
+bun run watch          # rebuild on change
+bun run typecheck      # run tsc --noEmit
+bun run lint           # run eslint
+bun run lint:fix       # run eslint --fix
+bun run test           # run vitest
 ```
 
-### Tree-sitter WASM compatibility
+### Tree-sitter WASM grammars
 
-The extension uses `web-tree-sitter` to load prebuilt grammar WASMs from `tree-sitter-wasms`. These two packages must use compatible tree-sitter ABI versions or grammar loading will silently fail at runtime.
+The extension uses `web-tree-sitter` to load grammar WASMs pre-built from individual `tree-sitter-*` packages. `scripts/build-tree-sitter.ts` compiles each grammar with `tree-sitter-cli` into `src/tree-sitter/wasm/`; the `copy-grammars` build step copies them to `dist/grammars/`.
 
-`tree-sitter-wasms@0.1.x` builds grammars with `tree-sitter-cli@0.20.x`. `web-tree-sitter@0.26+` introduced a breaking ABI change and cannot load these grammars. `web-tree-sitter` is pinned to `0.25.10` for this reason. Do not upgrade it without verifying grammar loading still works.
+To rebuild:
+
+```sh
+bun run scripts/build-tree-sitter.ts
+```
+
+Keep `tree-sitter-cli` and `web-tree-sitter` on compatible ABI versions when upgrading either.
 
 ### Known limitations
 

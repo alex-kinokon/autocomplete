@@ -5,7 +5,7 @@
  * enclosing function/class/module signatures. This gives the model
  * structural awareness of where the cursor is in the codebase.
  */
-import type TreeSitter from "web-tree-sitter";
+import type * as TreeSitter from "web-tree-sitter";
 
 /** A node along the root path with its type and signature text. */
 export interface RootPathNode {

@@ -4,7 +4,7 @@
  * Adjusts prefix/suffix boundaries to align with AST statement/declaration
  * boundaries, avoiding mid-expression cuts.
  */
-import type TreeSitter from "web-tree-sitter";
+import type * as TreeSitter from "web-tree-sitter";
 
 /**
  * Node types that represent statement-level or declaration-level boundaries.

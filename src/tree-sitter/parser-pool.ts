@@ -7,7 +7,7 @@
  * - Lazy initialization on first use (not during extension activation)
  */
 import * as vscode from "vscode";
-import type TreeSitter from "web-tree-sitter";
+import type * as TreeSitter from "web-tree-sitter";
 
 import type { LanguageId } from "../context.ts";
 import * as log from "../log.ts";

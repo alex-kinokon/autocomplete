@@ -4,7 +4,7 @@
  * Parses `prefix + completion + suffix` and checks for ERROR nodes in the
  * completion region. Uses binary search to find the last valid line.
  */
-import type TreeSitter from "web-tree-sitter";
+import type * as TreeSitter from "web-tree-sitter";
 
 import type { LanguageId } from "../context.ts";
 import * as log from "../log.ts";

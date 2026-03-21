@@ -4,7 +4,7 @@
  * These mocks implement just enough of the tree-sitter API to exercise
  * truncation, validation, and root-path logic without loading WASM.
  */
-import type TreeSitter from "web-tree-sitter";
+import type * as TreeSitter from "web-tree-sitter";
 
 let nextId = 1;
 

@@ -9,14 +9,14 @@ Cette extension n’est pas un agent de programmation. Elle fait uniquement de l
 ## Installation
 
 ```sh
-pnpm install
-pnpm run build
+bun install
+bun run build
 ```
 
 Pour tester localement, lancez la configuration « Run Extension » (panneau Exécuter et déboguer) pour ouvrir un Extension Development Host. Ou empaquetez en VSIX :
 
 ```sh
-pnpm run package
+bun run package
 code --install-extension *.vsix
 # pour VSCodium
 codium --install-extension *.vsix
@@ -123,19 +123,25 @@ GNU General Public License v3.0 ou ultérieure.
 ## Développement
 
 ```sh
-pnpm build          # empaqueter dans dist/
-pnpm watch          # recompiler au changement
-pnpm typecheck      # exécuter tsc --noEmit
-pnpm lint           # exécuter eslint
-pnpm lint:fix       # exécuter eslint --fix
-pnpm test           # exécuter vitest
+bun run build          # empaqueter dans dist/
+bun run watch          # recompiler au changement
+bun run typecheck      # exécuter tsc --noEmit
+bun run lint           # exécuter eslint
+bun run lint:fix       # exécuter eslint --fix
+bun run test           # exécuter vitest
 ```
 
-### Compatibilité WASM tree-sitter
+### Grammaires WASM tree-sitter
 
-L’extension charge des grammaires WASM pré-compilées (`tree-sitter-wasms`) via `web-tree-sitter`. Les deux paquets doivent utiliser des versions ABI compatibles ; sinon, le chargement des grammaires échoue silencieusement.
+L’extension utilise `web-tree-sitter` pour charger des grammaires WASM pré-compilées à partir des paquets `tree-sitter-*`. `scripts/build-tree-sitter.ts` compile chaque grammaire avec `tree-sitter-cli` dans `src/tree-sitter/wasm/` ; l’étape `copy-grammars` les copie dans `dist/grammars/`.
 
-`tree-sitter-wasms@0.1.x` compile ses grammaires avec `tree-sitter-cli@0.20.x`. À partir de `web-tree-sitter@0.26+`, une rupture d’ABI empêche leur chargement. C’est pourquoi `web-tree-sitter` est épinglé à `0.25.10`. Ne la mettez pas à jour sans vérifier que les grammaires se chargent correctement.
+Pour recompiler :
+
+```sh
+bun run scripts/build-tree-sitter.ts
+```
+
+Veillez à garder `tree-sitter-cli` et `web-tree-sitter` sur des versions ABI compatibles lors des mises à jour.
 
 ### Limitations connues
 
