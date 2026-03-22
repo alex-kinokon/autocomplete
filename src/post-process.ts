@@ -5,6 +5,7 @@
  * brackets, unterminated strings, or trailing whitespace.
  */
 import type { DocumentContext } from "./context.ts";
+import { isProseLanguage } from "./context.ts";
 import { type CounterMap, createCounterMap } from "./counter-map.ts";
 
 /** Bracket opener characters. */
@@ -103,18 +104,21 @@ function scanCode(
 export function postProcessCompletion(text: string, context: DocumentContext): string {
   let result = text;
 
-  const prefixCounts = countBrackets(context.prefix);
-  const suffixExcess = countSuffixExcessClosers(context.suffix);
-  const adjusted = createCounterMap(OPENERS);
-  for (const [closer, opener] of CLOSER_TO_OPENER) {
-    adjusted.set(
-      opener,
-      Math.max(0, prefixCounts.get(opener) - suffixExcess.get(closer))
-    );
+  if (!isProseLanguage(context.languageId)) {
+    const prefixCounts = countBrackets(context.prefix);
+    const suffixExcess = countSuffixExcessClosers(context.suffix);
+    const adjusted = createCounterMap(OPENERS);
+    for (const [closer, opener] of CLOSER_TO_OPENER) {
+      adjusted.set(
+        opener,
+        Math.max(0, prefixCounts.get(opener) - suffixExcess.get(closer))
+      );
+    }
+
+    result = truncateAtBracketImbalance(result, adjusted);
+    result = truncateAtUnclosedString(result);
   }
 
-  result = truncateAtBracketImbalance(result, adjusted);
-  result = truncateAtUnclosedString(result);
   result = trimTrailingWhitespace(result);
   result = trimSuffixOverlap(result, context.suffix);
   return result;
@@ -241,7 +245,7 @@ export function trimTrailingWhitespace(text: string): string {
 }
 
 /**
- * Count excess closing brackets in the suffix — closers that don’t match any
+ * Count excess closing brackets in the suffix. Closers that don’t match any
  * opener *within* the suffix itself. These close openers from the prefix.
  *
  * Returns counts keyed by closer character: `(")" → n, "}" → n, "]" → n)`.

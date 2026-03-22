@@ -12,7 +12,7 @@ import type { ChatCompletionCreateParamsBase } from "openai/resources/chat/compl
 import type { CompletionCreateParamsNonStreaming } from "openai/resources/completions";
 
 import type { DocumentContext, RelatedSnippet } from "./context.ts";
-import { commentPrefix } from "./context.ts";
+import { commentPrefix, isProseLanguage } from "./context.ts";
 import * as log from "./log.ts";
 import { postProcessCompletion } from "./post-process.ts";
 import { mergeStopTokens } from "./stop-tokens.ts";
@@ -25,6 +25,15 @@ const DEFAULT_SYSTEM_PROMPT = [
   "NEVER output explanations, comments about the code, conversational text, or markdown.",
   "Do not repeat existing code.",
   "Match the indentation and style.",
+  "If unsure, output nothing.",
+].join(" ");
+
+const PROSE_SYSTEM_PROMPT = [
+  "You are a text completion engine.",
+  "Continue the text from where the prefix ends.",
+  "Output ONLY the raw text to insert.",
+  "Do not repeat existing text.",
+  "Match the tone and style.",
   "If unsure, output nothing.",
 ].join(" ");
 
@@ -90,6 +99,7 @@ export async function requestCompletion(
 
 function buildCompletionPreamble(context: DocumentContext): string {
   const comment = commentPrefix(context.languageId);
+  if (!comment) return "";
   let preamble = `${comment} Path: ${context.relativePath}\n`;
   if (context.relatedSnippets.length > 0) {
     preamble += formatSnippetsAsComments(context.relatedSnippets, comment);
@@ -104,7 +114,9 @@ async function requestPlainCompletion(
   signal: AbortSignal
 ): Promise<string | undefined> {
   const { endpoint, model, maxTokens, temperature } = config;
-  const stop = mergeStopTokens(config.stop, model);
+  const prose = isProseLanguage(context.languageId);
+  const baseStop = prose ? config.stop.filter(s => s !== "\n\n") : config.stop;
+  const stop = mergeStopTokens(baseStop, model);
   const preamble = buildCompletionPreamble(context);
   const url = `${normalizeEndpoint(endpoint)}/completions`;
   const { relatedSnippets, prefix } = context;
@@ -177,7 +189,9 @@ async function requestFimCompletion(
   signal: AbortSignal
 ): Promise<string | undefined> {
   const { fim, endpoint, model, maxTokens, temperature } = config;
-  const stop = mergeStopTokens(config.stop, model);
+  const prose = isProseLanguage(context.languageId);
+  const baseStop = prose ? config.stop.filter(s => s !== "\n\n") : config.stop;
+  const stop = mergeStopTokens(baseStop, model);
   const preamble = buildCompletionPreamble(context);
 
   const url = `${normalizeEndpoint(endpoint)}/completions`;
@@ -260,8 +274,11 @@ async function requestChatCompletion(
   headers: Record<string, string>,
   signal: AbortSignal
 ): Promise<string | undefined> {
-  const { endpoint, model, maxTokens, temperature, stop } = config;
-  const systemPrompt = config.systemPrompt || DEFAULT_SYSTEM_PROMPT;
+  const { endpoint, model, maxTokens, temperature } = config;
+  const prose = isProseLanguage(context.languageId);
+  const defaultPrompt = prose ? PROSE_SYSTEM_PROMPT : DEFAULT_SYSTEM_PROMPT;
+  const systemPrompt = config.systemPrompt || defaultPrompt;
+  const stop = prose ? config.stop.filter(s => s !== "\n\n") : config.stop;
   const url = `${normalizeEndpoint(endpoint)}/chat/completions`;
 
   const { relatedSnippets, prefix, suffix } = context;

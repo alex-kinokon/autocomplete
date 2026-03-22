@@ -79,6 +79,7 @@ export type LanguageId =
   | "restructuredtext"
   | "ruby"
   | "rust"
+  | "scminput"
   | "scss"
   | "search-result"
   | "shaderlab"
@@ -607,8 +608,17 @@ const COMMENT_PREFIXES = new Map<string, string>([
   ["less", "//"],
 ]);
 
+/** Language IDs that represent prose rather than code. */
+const PROSE_LANGUAGES = new Set<string>(["scminput", "git-commit"]);
+
+/** Check whether a language ID represents prose (e.g. commit messages). */
+export function isProseLanguage(languageId: LanguageId): boolean {
+  return PROSE_LANGUAGES.has(languageId);
+}
+
 /** Return the line comment prefix for a given language. */
 export function commentPrefix(languageId: LanguageId): string {
+  if (PROSE_LANGUAGES.has(languageId)) return "";
   return COMMENT_PREFIXES.get(languageId) ?? "//";
 }
 

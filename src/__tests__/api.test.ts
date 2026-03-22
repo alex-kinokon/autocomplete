@@ -604,4 +604,85 @@ describe("requestCompletion", () => {
       requestCompletion(makeConfig(), mockContext, AbortSignal.timeout(5000))
     ).rejects.toThrow("API error 404");
   });
+
+  it("uses prose system prompt for scminput language", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { content: "fix the parser bug" } }],
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as Response);
+
+    const proseContext: DocumentContext = {
+      prefix: "Fix ",
+      suffix: "",
+      languageId: "scminput",
+      relativePath: "git/scm0/input",
+      relatedSnippets: [],
+    };
+
+    await requestCompletion(makeConfig(), proseContext, AbortSignal.timeout(5000));
+
+    const body = JSON.parse(vi.mocked(fetch).mock.calls[0]![1]!.body as string);
+    expect(body.messages[0].content).toContain("text completion engine");
+    expect(body.messages[0].content).not.toContain("code completion engine");
+  });
+
+  it("filters out double-newline stop token for prose languages in chat mode", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { content: "fix the bug" } }],
+        }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as Response);
+
+    const proseContext: DocumentContext = {
+      prefix: "Fix ",
+      suffix: "",
+      languageId: "scminput",
+      relativePath: "git/scm0/input",
+      relatedSnippets: [],
+    };
+
+    await requestCompletion(
+      makeConfig({ stop: ["\n\n", "<|endoftext|>"] }),
+      proseContext,
+      AbortSignal.timeout(5000)
+    );
+
+    const body = JSON.parse(vi.mocked(fetch).mock.calls[0]![1]!.body as string);
+    expect(body.stop).not.toContain("\n\n");
+    expect(body.stop).toContain("<|endoftext|>");
+  });
+
+  it("omits path comment in preamble for prose languages", async () => {
+    const mockResponse = {
+      ok: true,
+      json: () => Promise.resolve({ choices: [{ text: "the parser" }] }),
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse as Response);
+
+    const proseContext: DocumentContext = {
+      prefix: "Fix ",
+      suffix: "",
+      languageId: "scminput",
+      relativePath: "git/scm0/input",
+      relatedSnippets: [],
+    };
+
+    await requestCompletion(
+      makeConfig({ requestMode: "completion" }),
+      proseContext,
+      AbortSignal.timeout(5000)
+    );
+
+    const body = JSON.parse(vi.mocked(fetch).mock.calls[0]![1]!.body as string);
+    expect(body.prompt).not.toContain("//");
+    expect(body.prompt).not.toContain("Path:");
+    expect(body.prompt).toBe("Fix ");
+  });
 });

@@ -7,6 +7,7 @@ import {
   extractImports,
   formatSymbolPathContext,
   isImportMatch,
+  isProseLanguage,
 } from "../context.ts";
 import type { FileEditHistory } from "../edit-tracker.ts";
 
@@ -74,6 +75,24 @@ describe("commentPrefix", () => {
   it("defaults to // for unknown languages", () => {
     expect(commentPrefix("unknown")).toBe("//");
     expect(commentPrefix("")).toBe("//");
+  });
+
+  it("returns empty string for prose languages", () => {
+    expect(commentPrefix("scminput")).toBe("");
+    expect(commentPrefix("git-commit")).toBe("");
+  });
+});
+
+describe("isProseLanguage", () => {
+  it("returns true for scminput and git-commit", () => {
+    expect(isProseLanguage("scminput")).toBe(true);
+    expect(isProseLanguage("git-commit")).toBe(true);
+  });
+
+  it("returns false for code languages", () => {
+    expect(isProseLanguage("typescript")).toBe(false);
+    expect(isProseLanguage("python")).toBe(false);
+    expect(isProseLanguage("markdown")).toBe(false);
   });
 });
 

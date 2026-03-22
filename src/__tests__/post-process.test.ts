@@ -239,6 +239,42 @@ describe("postProcessCompletion", () => {
     };
     expect(postProcessCompletion("0];", context)).toBe("0");
   });
+
+  it("skips bracket truncation for prose languages", () => {
+    const context: DocumentContext = {
+      prefix: "Fix the bug (see ",
+      suffix: "",
+      languageId: "scminput",
+      relativePath: "git/scm0/input",
+      relatedSnippets: [],
+    };
+    expect(postProcessCompletion("issue #42)", context)).toBe("issue #42)");
+  });
+
+  it("skips string truncation for prose languages", () => {
+    const context: DocumentContext = {
+      prefix: "Don",
+      suffix: "",
+      languageId: "scminput",
+      relativePath: "git/scm0/input",
+      relatedSnippets: [],
+    };
+    // eslint-disable-next-line unicorn/string-content -- literal apostrophe in test data
+    expect(postProcessCompletion("'t break this", context)).toBe(
+      "'t break this" // eslint-disable-line unicorn/string-content
+    );
+  });
+
+  it("still trims trailing whitespace for prose languages", () => {
+    const context: DocumentContext = {
+      prefix: "Fix bug",
+      suffix: "",
+      languageId: "scminput",
+      relativePath: "git/scm0/input",
+      relatedSnippets: [],
+    };
+    expect(postProcessCompletion(" in parser  \n\n", context)).toBe(" in parser");
+  });
 });
 
 describe("countSuffixExcessClosers", () => {

@@ -190,7 +190,7 @@
     "lint:fix": "eslint src/ --fix",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
-    "vscode:prepublish": "pnpm build --minify"
+    "vscode:prepublish": "bun run build --minify"
   },
   "optionalDependencies": {
     "@aet/eslint-rules": "^2.0.123"

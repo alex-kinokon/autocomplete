@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "autocomplete",
@@ -91,7 +92,6 @@
     "tree-sitter-php",
     "@tlaplus/tree-sitter-tlaplus",
     "keytar",
-    "yarn",
     "tree-sitter-go",
     "tree-sitter-elisp",
     "tree-sitter-elixir",

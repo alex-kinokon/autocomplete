@@ -15,7 +15,7 @@ import {
   requestCompletion,
 } from "./api.ts";
 import { detectAutoRequestMode, getApiKey, getConfig, getSetting } from "./config.ts";
-import { extractContext } from "./context.ts";
+import { extractContext, isProseLanguage } from "./context.ts";
 import type { DefinitionCache } from "./definition-cache.ts";
 import type { EditTracker } from "./edit-tracker.ts";
 import { isExcludedFile } from "./exclude-file.ts";
@@ -103,14 +103,19 @@ export class AutocompleteProvider implements vscode.InlineCompletionItemProvider
         symbolCache: this.symbolCache,
       });
 
-      // User is deleting text — don't suggest new code
+      // User is deleting text. Don’t suggest new code
       if (this.editTracker?.wasLastEditDeletion(document.uri)) {
         log.info("Skipping completion: last edit was deletion");
         return;
       }
 
       // Skip completions in cases where prompting would be useless or noisy
-      const skipReason = shouldSkipCompletion(document, docContext.prefix, position);
+      const skipReason = shouldSkipCompletion(
+        document,
+        docContext.prefix,
+        position,
+        docContext.languageId
+      );
       if (skipReason) {
         log.info(`Skipping completion: ${skipReason}`);
         return;
@@ -223,7 +228,8 @@ const CLOSING_ONLY = /^\s*[);>\]}]+\s*$/;
 export function shouldSkipCompletion(
   document: vscode.TextDocument,
   prefix: string,
-  position: vscode.Position
+  position: vscode.Position,
+  languageId?: string
 ): string | undefined {
   if (document.lineCount === 1 && document.lineAt(0).text.trim() === "") {
     return "empty document";
@@ -233,24 +239,30 @@ export function shouldSkipCompletion(
     return "empty prefix";
   }
 
+  const prose = languageId != null && isProseLanguage(languageId);
+
   // User is just closing a block. Autocomplete would be noise
-  const lineText = document.lineAt(position.line).text.slice(0, position.character);
-  if (CLOSING_ONLY.test(lineText)) {
-    return "closing bracket line";
+  if (!prose) {
+    const lineText = document.lineAt(position.line).text.slice(0, position.character);
+    if (CLOSING_ONLY.test(lineText)) {
+      return "closing bracket line";
+    }
   }
 
-  // Cursor is inside a token — completing here would splice into a word
+  // Cursor is inside a token. Completing here would splice into a word
   const fullLineText = document.lineAt(position.line).text;
   const afterCursor = fullLineText[position.character];
   if (afterCursor && /\w/.test(afterCursor)) {
     return "middle of word";
   }
 
-  // Substantial non-closer content after cursor — completion would be disruptive
-  const textAfterCursor = fullLineText.slice(position.character);
-  const stripped = textAfterCursor.replace(/^[\s"'),;\]}]*/, "");
-  if (stripped.length > 0) {
-    return "content after cursor";
+  // Substantial non-closer content after cursor. Completion would be disruptive
+  if (!prose) {
+    const textAfterCursor = fullLineText.slice(position.character);
+    const stripped = textAfterCursor.replace(/^[\s"'),;\]}]*/, "");
+    if (stripped.length > 0) {
+      return "content after cursor";
+    }
   }
 
   return;

@@ -79,7 +79,6 @@ function hasErrorInRange(
 ): boolean {
   const errors = root.descendantsOfType("ERROR");
   for (const error of errors) {
-    if (!error) continue;
     // Check if error overlaps with the range
     if (error.startIndex < endByte && error.endIndex > startByte) {
       return true;
@@ -107,7 +106,7 @@ function hasMissingInRange(
   }
 
   for (const child of node.children) {
-    if (child && hasMissingInRange(child, startByte, endByte)) {
+    if (hasMissingInRange(child, startByte, endByte)) {
       return true;
     }
   }

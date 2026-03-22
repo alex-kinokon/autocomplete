@@ -36,8 +36,6 @@ describe("getGrammarName", () => {
   });
 
   it("returns undefined for unsupported languages", () => {
-    expect(getGrammarName("html")).toBeUndefined();
-    expect(getGrammarName("css")).toBeUndefined();
     expect(getGrammarName("markdown")).toBeUndefined();
     expect(getGrammarName("")).toBeUndefined();
   });
@@ -50,8 +48,14 @@ describe("isLanguageSupported", () => {
     expect(isLanguageSupported("rust")).toBe(true);
   });
 
+  it("returns true for newly added languages", () => {
+    expect(isLanguageSupported("html")).toBe(true);
+    expect(isLanguageSupported("css")).toBe(true);
+    expect(isLanguageSupported("shellscript")).toBe(true);
+  });
+
   it("returns false for unsupported languages", () => {
-    expect(isLanguageSupported("html")).toBe(false);
+    expect(isLanguageSupported("markdown")).toBe(false);
     expect(isLanguageSupported("unknown")).toBe(false);
   });
 });

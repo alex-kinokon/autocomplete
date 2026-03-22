@@ -182,6 +182,20 @@ describe("shouldSkipCompletion", () => {
       "content after cursor"
     );
   });
+
+  it("does not skip closing bracket lines for prose languages", () => {
+    const doc = makeDocument([")"]);
+    expect(
+      shouldSkipCompletion(doc, ")", new vscode.Position(0, 1), "scminput")
+    ).toBeUndefined();
+  });
+
+  it("does not skip content after cursor for prose languages", () => {
+    const doc = makeDocument(["Fix the - bug in parser"]);
+    expect(
+      shouldSkipCompletion(doc, "Fix the ", new vscode.Position(0, 8), "scminput")
+    ).toBeUndefined();
+  });
 });
 
 // --- Controller lifecycle tests ---
@@ -200,7 +214,9 @@ vi.mock("../config.ts", () => ({
     contextLines: 100,
     systemPrompt: "",
   })),
-  detectAutoRequestMode: vi.fn<() => Promise<undefined>>(() => Promise.resolve(undefined)),
+  detectAutoRequestMode: vi.fn<() => Promise<undefined>>(() =>
+    Promise.resolve(undefined)
+  ),
   getSetting: vi.fn<() => string[]>(() => []),
 }));
 
@@ -214,6 +230,7 @@ vi.mock("../context.ts", () => ({
       relatedSnippets: [],
     })
   ),
+  isProseLanguage: (id: string) => id === "scminput" || id === "git-commit",
 }));
 
 vi.mock("../api.ts", () => ({
@@ -485,7 +502,7 @@ describe("empty streak heuristic", () => {
     const doc = makeProviderDocument("file:///streak.ts");
     const pos = new vscode.Position(0, 10);
 
-    // First 3 requests return empty — build up streak
+    // First 3 requests return empty. Build up streak
     for (let i = 0; i < 3; i++) {
       await provider.provideInlineCompletionItems(doc, pos, dummyContext, makeToken());
     }
@@ -538,7 +555,7 @@ describe("empty streak heuristic", () => {
     await provider.provideInlineCompletionItems(doc, pos, dummyContext, makeToken());
     await provider.provideInlineCompletionItems(doc, pos, dummyContext, makeToken());
 
-    // Return non-empty — should reset streak
+    // Return non-empty; should reset streak
     vi.mocked(requestCompletion).mockResolvedValue("42");
     await provider.provideInlineCompletionItems(doc, pos, dummyContext, makeToken());
 
