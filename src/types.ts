@@ -41,7 +41,7 @@ export interface AutocompleteConfig {
   readonly fimMode: "auto" | "custom" | "off" | "server-managed";
   /** Milliseconds to wait after the last keystroke before requesting. */
   readonly debounceMs: number;
-  /** Lines of context to extract around the cursor (60% prefix, 40% suffix). */
+  /** Lines of context around the cursor (nominal 60/40 prefix/suffix, rebalanced near boundaries). */
   readonly contextLines: number;
   /** System prompt for chat completions. Empty string uses the built-in default. */
   readonly systemPrompt: string;

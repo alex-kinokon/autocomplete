@@ -129,6 +129,12 @@ Continue est le plus transparent sur sa gestion du budget. Les [valeurs par déf
 
 Cette répartition 30/20/50 est le fruit de nombreuses expérimentations. C’est un bon point de départ si tu construis ton propre système.
 
+### Rééquilibrage dynamique du budget
+
+Une répartition fixe préfixe/suffixe a un angle mort : aux limites du fichier, on gaspille un côté du budget. En fin de fichier, une répartition 60/40 réserve 40 % au suffixe, mais il ne reste qu’un retour à la ligne. Ces lignes inutilisées partent en fumée, et le préfixe rate le haut du fichier (imports, déclarations de types, initialisation des tests) dont le modèle a besoin pour produire une complétion cohérente. Résultat : du code halluciné, faute de contexte structurel.
+
+La solution tient en rien du tout. Après avoir calculé la répartition nominale, on vérifie combien de lignes sont réellement disponibles de chaque côté. Si le suffixe (ou le préfixe) est plus court que son allocation, on redistribue les lignes excédentaires à l’autre côté. En milieu de fichier, rien ne change. En fin de fichier, le préfixe récupère la totalité du budget. En début de fichier, c’est le suffixe qui en profite. Quatre lignes de code qui éliminent toute une catégorie de mauvaises complétions.
+
 ### Trop de contexte nuit
 
 Les expériences de Sourcegraph le confirment : [« l’ajout de contexte non pertinent peut dégrader la qualité des réponses »](https://sourcegraph.com/blog/the-lifecycle-of-a-code-ai-completion). Tout jeter dans le prompt, côté contexte, c’est comme partir avec tout son linge pour une fin de semaine. Possible en théorie, guère utile.

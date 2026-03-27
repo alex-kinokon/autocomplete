@@ -102,7 +102,7 @@ function scanCode(
  * @param context Document context (prefix/suffix used to seed bracket counts)
  */
 export function postProcessCompletion(text: string, context: DocumentContext): string {
-  let result = text;
+  let result = stripPrefixEcho(text, context.prefix);
 
   if (!isProseLanguage(context.languageId)) {
     const prefixCounts = countBrackets(context.prefix);
@@ -313,6 +313,23 @@ export function trimSuffixOverlap(completion: string, suffix: string): string {
 
   if (bestLen > 0) {
     return completion.slice(0, completion.length - bestLen);
+  }
+  return completion;
+}
+
+/**
+ * Strip prefix echo from the completion. Chat models sometimes repeat part
+ * or all of the prefix before producing the actual completion. Find the
+ * longest head of `completion` that matches a tail of `prefix` and strip it.
+ *
+ * Requires at least 10 characters of overlap to avoid false positives.
+ */
+export function stripPrefixEcho(completion: string, prefix: string): string {
+  const maxOverlap = Math.min(completion.length, prefix.length);
+  for (let len = maxOverlap; len >= 10; len--) {
+    if (prefix.endsWith(completion.slice(0, len))) {
+      return completion.slice(len);
+    }
   }
   return completion;
 }

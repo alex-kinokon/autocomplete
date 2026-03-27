@@ -125,10 +125,55 @@ export interface ContextOptions {
 }
 
 /**
+ * Compute the start and end lines for the context window around the cursor.
+ *
+ * Uses a nominal 60/40 prefix/suffix split. When the cursor is near a file
+ * boundary (e.g. near EOF), unused budget on the constrained side is
+ * redistributed to the other side so no context capacity is wasted.
+ *
+ * Note: the cursor line itself is included in the window beyond the nominal
+ * budget, so the actual span (`endLine - startLine + 1`) may exceed
+ * `contextLines` by one. This matches the original line-based windowing
+ * behavior and is absorbed by the token budget.
+ *
+ * @param contextLines Total line budget (must be >= 0)
+ * @param cursorLine Zero-based cursor line
+ * @param lineCount Total lines in the document (must be >= 1)
+ */
+export function computeContextWindow(
+  contextLines: number,
+  cursorLine: number,
+  lineCount: number
+): { startLine: number; endLine: number } {
+  if (lineCount <= 0) return { startLine: 0, endLine: 0 };
+
+  const nominalPrefix = Math.round(contextLines * 0.6);
+  const nominalSuffix = contextLines - nominalPrefix;
+
+  // How many lines are actually available on each side?
+  const availablePrefix = cursorLine;
+  const availableSuffix = lineCount - 1 - cursorLine;
+
+  // Redistribute unused budget from the constrained side to the other
+  const prefixLines =
+    Math.min(availablePrefix, nominalPrefix) +
+    Math.max(0, nominalSuffix - availableSuffix);
+  const suffixLines =
+    Math.min(availableSuffix, nominalSuffix) +
+    Math.max(0, nominalPrefix - availablePrefix);
+
+  return {
+    startLine: Math.max(0, cursorLine - prefixLines),
+    endLine: Math.min(lineCount - 1, cursorLine + suffixLines),
+  };
+}
+
+/**
  * Extract document context around the cursor.
  *
- * Uses an asymmetric budget (60% prefix, 40% suffix). More suffix gives the
- * model better awareness of where to "land" the completion.
+ * Uses an asymmetric budget (60% prefix, 40% suffix) with dynamic
+ * rebalancing when the cursor is near a file boundary. More suffix gives
+ * the model better awareness of where to "land" the completion.
  *
  * When a ParserPool is available, adjusts boundaries to AST statement
  * boundaries and includes root-path scope context. Falls back to
@@ -144,11 +189,14 @@ export async function extractContext(
   options?: ContextOptions
 ): Promise<DocumentContext> {
   const { editTracker, parserPool, definitionCache, symbolCache } = options ?? {};
-  const prefixLineCount = Math.round(contextLines * 0.6);
-  const suffixLineCount = contextLines - prefixLineCount;
+  const { startLine: computedStart, endLine: computedEnd } = computeContextWindow(
+    contextLines,
+    position.line,
+    document.lineCount
+  );
 
-  let startLine = Math.max(0, position.line - prefixLineCount);
-  let endLine = Math.min(document.lineCount - 1, position.line + suffixLineCount);
+  let startLine = computedStart;
+  let endLine = computedEnd;
 
   // When parser available, adjust boundaries to AST boundaries
   let rootPathSnippet: RelatedSnippet | undefined;

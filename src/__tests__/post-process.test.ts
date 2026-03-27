@@ -5,6 +5,7 @@ import {
   countBrackets,
   countSuffixExcessClosers,
   postProcessCompletion,
+  stripPrefixEcho,
   trimSuffixOverlap,
   trimTrailingWhitespace,
   truncateAtBracketImbalance,
@@ -369,5 +370,36 @@ describe("trimSuffixOverlap", () => {
 
   it("trims trailing semicolons and whitespace overlap", () => {
     expect(trimSuffixOverlap("x; ", "; ")).toBe("x");
+  });
+});
+
+describe("stripPrefixEcho", () => {
+  it("strips full prefix echo", () => {
+    const prefix = 'import { clsx } from "';
+    const completion = 'import { clsx } from "@mantine/core";';
+    expect(stripPrefixEcho(completion, prefix)).toBe('@mantine/core";');
+  });
+
+  it("strips multi-line prefix echo", () => {
+    const prefix = 'import { useState } from "react";\nimport { clsx } from "';
+    const completion = 'import { useState } from "react";\nimport { clsx } from "clsx";';
+    expect(stripPrefixEcho(completion, prefix)).toBe('clsx";');
+  });
+
+  it("strips partial prefix echo (last line only)", () => {
+    const prefix = 'import { useState } from "react";\nimport { clsx } from "';
+    const completion = 'import { clsx } from "clsx";';
+    expect(stripPrefixEcho(completion, prefix)).toBe('clsx";');
+  });
+
+  it("returns completion unchanged when no echo", () => {
+    const prefix = 'import { clsx } from "';
+    expect(stripPrefixEcho("clsx", prefix)).toBe("clsx");
+  });
+
+  it("ignores short overlaps below threshold", () => {
+    const prefix = "const x = ";
+    // "const" is only 5 chars of overlap, below the 10-char threshold
+    expect(stripPrefixEcho("const y = 2;", prefix)).toBe("const y = 2;");
   });
 });

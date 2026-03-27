@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 
 import {
   commentPrefix,
+  computeContextWindow,
   extractEditedRanges,
   extractImports,
   formatSymbolPathContext,
@@ -298,5 +299,75 @@ describe("extractEditedRanges", () => {
     expect(result).toContain("line 0");
     // Second range should get partial content rather than being dropped
     expect(result.length).toBeGreaterThan(0);
+  });
+});
+
+describe("computeContextWindow", () => {
+  it("uses 60/40 split when cursor is mid-file", () => {
+    // 500-line file, cursor at line 250, budget 100
+    const { startLine, endLine } = computeContextWindow(100, 250, 500);
+    expect(startLine).toBe(250 - 60);
+    expect(endLine).toBe(250 + 40);
+  });
+
+  it("redistributes unused suffix to prefix near EOF", () => {
+    // 223-line file (0..222), cursor at line 222, budget 100
+    const { startLine, endLine } = computeContextWindow(100, 222, 223);
+    // Nominal: prefix 60, suffix 40. Available suffix: 0 lines.
+    // Redistributed: prefix gets 60 + 40 = 100 lines
+    expect(endLine).toBe(222);
+    expect(startLine).toBe(222 - 100);
+  });
+
+  it("redistributes unused prefix to suffix near start of file", () => {
+    // 500-line file, cursor at line 5, budget 100
+    const { startLine, endLine } = computeContextWindow(100, 5, 500);
+    // Nominal: prefix 60, suffix 40. Available prefix: 5 lines.
+    // Redistributed: suffix gets 40 + (60 - 5) = 95 lines
+    expect(startLine).toBe(0);
+    expect(endLine).toBe(5 + 95);
+  });
+
+  it("handles short files where both sides are constrained", () => {
+    // 10-line file (0..9), cursor at line 5, budget 100
+    const { startLine, endLine } = computeContextWindow(100, 5, 10);
+    // Entire file fits in budget, should include all lines
+    expect(startLine).toBe(0);
+    expect(endLine).toBe(9);
+  });
+
+  it("handles cursor at line 0", () => {
+    const { startLine, endLine } = computeContextWindow(100, 0, 500);
+    expect(startLine).toBe(0);
+    // All 60 prefix lines unused, redistributed to suffix: 40 + 60 = 100
+    expect(endLine).toBe(100);
+  });
+
+  it("handles single-line file", () => {
+    const { startLine, endLine } = computeContextWindow(100, 0, 1);
+    expect(startLine).toBe(0);
+    expect(endLine).toBe(0);
+  });
+
+  it("preserves original behavior when cursor has room on both sides", () => {
+    // Middle of a large file: no redistribution needed
+    const { startLine, endLine } = computeContextWindow(100, 500, 1000);
+    expect(startLine).toBe(500 - 60);
+    expect(endLine).toBe(500 + 40);
+  });
+
+  it("does not redistribute when both sides barely fit their nominal allocation", () => {
+    // 60-line file (0..59), cursor at line 30, budget 50
+    // Nominal: prefix 30, suffix 20. Available: 30 prefix, 29 suffix.
+    // Both sides have room, so no redistribution occurs.
+    const { startLine, endLine } = computeContextWindow(50, 30, 60);
+    expect(startLine).toBe(30 - 30);
+    expect(endLine).toBe(30 + 20);
+  });
+
+  it("returns a safe result for lineCount 0", () => {
+    const { startLine, endLine } = computeContextWindow(100, 0, 0);
+    expect(startLine).toBe(0);
+    expect(endLine).toBe(0);
   });
 });

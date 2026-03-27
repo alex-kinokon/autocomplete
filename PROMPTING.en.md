@@ -130,6 +130,12 @@ Continue is the most transparent about its budgeting. The [defaults](https://git
 
 That 30/20/50 split is the result of a lot of experimentation. It’s a good starting point if you’re building your own.
 
+### Dynamic Budget Rebalancing
+
+A fixed prefix/suffix split has a blind spot: near file boundaries, one side of the budget goes to waste. At the end of a file, a 60/40 split allocates 40% of the budget to suffix, but only a newline’s worth of suffix exists. Those unused lines are just gone, and the prefix misses the top of the file (imports, type declarations, test setup) that the model needs to produce a sensible completion. The result is hallucinated code because the model has no structural context.
+
+The fix is simple. After computing the nominal split, check how many lines are actually available on each side. If the suffix (or prefix) is shorter than its allocation, redistribute the unused lines to the other side. Mid-file, the split is unchanged. Near EOF, the prefix gets the full budget. Near the start of a file, the suffix does. It’s a four-line change that eliminates an entire class of bad completions.
+
 ### More Context Isn’t Always Better
 
 This is counterintuitive but important. Sourcegraph’s internal experiments found that [“adding irrelevant context can make response quality worse.”](https://sourcegraph.com/blog/the-lifecycle-of-a-code-ai-completion) Throwing everything into the prompt is the context-gathering equivalent of packing your entire wardrobe for a weekend trip. Technically possible, not actually helpful.
